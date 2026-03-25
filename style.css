@@ -50,6 +50,13 @@ body {
   flex-direction: column;
 }
 
+/* ── Top stack (header + toolbar, single sticky unit) ── */
+.top-stack {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
 /* ── Header ── */
 header {
   display: flex;
@@ -58,9 +65,6 @@ header {
   padding: 12px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .header-left {
@@ -518,10 +522,10 @@ main {
   font-size: 12px;
 }
 
-/* Sticky file headers */
+/* Sticky file headers — top is set by JS to match top-stack height */
 .d2h-file-header {
   position: sticky;
-  top: 49px; /* below the main sticky header */
+  top: 0;
   z-index: 5;
 }
 

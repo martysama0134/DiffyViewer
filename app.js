@@ -202,6 +202,7 @@
   const $ = (sel) => document.querySelector(sel);
   const inputPanel = $("#inputPanel");
   const outputPanel = $("#outputPanel");
+  const outputToolbar = $("#outputToolbar");
   const diffInput = $("#diffInput");
   const diffContainer = $("#diffContainer");
   const diffStats = $("#diffStats");
@@ -336,50 +337,130 @@
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
 
   // ═══════════════════════════════════════════════════════════
-  // Hide whitespace — filters whitespace-only changes at parse time
+  // Hide whitespace — filters parsed DiffFile[] like git diff -w
+  // Uses LCS on whitespace-normalized lines to align del/add blocks
+  // even when counts differ, then hides whitespace-only matched pairs.
   // ═══════════════════════════════════════════════════════════
-  function filterWhitespace(raw) {
-    // Split into per-file diffs, drop hunks where all changes are whitespace-only
-    const lines = raw.split("\n");
-    const out = [];
-    let inHunk = false;
-    let hunkLines = [];
-    let hunkHeader = "";
-    let hasNonWsChange = false;
+  function stripWs(s) { return s.replace(/\s/g, ""); }
 
-    function flushHunk() {
-      if (hunkHeader && hasNonWsChange) {
-        out.push(hunkHeader);
-        hunkLines.forEach((l) => out.push(l));
+  // LCS on normalized content — returns array of [delIdx, addIdx] pairs
+  function lcsAlign(dels, adds) {
+    var dn = dels.map(function (l) { return stripWs(l.content.substring(1)); });
+    var an = adds.map(function (l) { return stripWs(l.content.substring(1)); });
+    var m = dn.length, n = an.length;
+    // DP table
+    var dp = [];
+    for (var i = 0; i <= m; i++) { dp[i] = new Array(n + 1).fill(0); }
+    for (var i = 1; i <= m; i++) {
+      for (var j = 1; j <= n; j++) {
+        dp[i][j] = dn[i - 1] === an[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
       }
-      hunkLines = [];
-      hunkHeader = "";
-      hasNonWsChange = false;
     }
+    // Backtrack to get matched pairs
+    var pairs = [];
+    var i = m, j = n;
+    while (i > 0 && j > 0) {
+      if (dn[i - 1] === an[j - 1]) { pairs.push([i - 1, j - 1]); i--; j--; }
+      else if (dp[i - 1][j] >= dp[i][j - 1]) { i--; }
+      else { j--; }
+    }
+    pairs.reverse();
+    return pairs;
+  }
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      if (line.startsWith("@@")) {
-        flushHunk();
-        hunkHeader = line;
-        inHunk = true;
-      } else if (inHunk && (line.startsWith("+") || line.startsWith("-"))) {
-        hunkLines.push(line);
-        // Check if the change is non-whitespace
-        const content = line.substring(1);
-        if (content.trim().length > 0) {
-          hasNonWsChange = true;
+  function filterWhitespaceFiles(files) {
+    return files.map(function (file) {
+      var newBlocks = [];
+
+      file.blocks.forEach(function (block) {
+        var newLines = [];
+        var lines = block.lines;
+        var i = 0;
+
+        while (i < lines.length) {
+          if (lines[i].type === "context") {
+            newLines.push(lines[i]);
+            i++;
+            continue;
+          }
+
+          // Collect consecutive delete then insert lines
+          var dels = [];
+          var adds = [];
+          while (i < lines.length && lines[i].type === "delete") { dels.push(lines[i]); i++; }
+          while (i < lines.length && lines[i].type === "insert") { adds.push(lines[i]); i++; }
+
+          // Use LCS alignment to match del/add lines by normalized content
+          var pairs = lcsAlign(dels, adds);
+          var matchedDel = new Set(pairs.map(function (p) { return p[0]; }));
+          var matchedAdd = new Set(pairs.map(function (p) { return p[1]; }));
+
+          // Unmatched deletes = real deletions; unmatched adds = real additions
+          // Matched pairs = whitespace-only changes → convert to context
+          var di = 0, ai = 0, pi = 0;
+          while (di < dels.length || ai < adds.length) {
+            // Emit unmatched deletes before next matched pair
+            while (di < dels.length && !matchedDel.has(di)) {
+              newLines.push(dels[di]);
+              di++;
+            }
+            // Emit unmatched adds before next matched pair
+            var nextMatchedAdd = pi < pairs.length ? pairs[pi][1] : adds.length;
+            while (ai < adds.length && !matchedAdd.has(ai) && ai < nextMatchedAdd) {
+              newLines.push(adds[ai]);
+              ai++;
+            }
+            // Emit matched pair as context
+            if (pi < pairs.length && di === pairs[pi][0] && ai === pairs[pi][1]) {
+              newLines.push({
+                type: "context",
+                content: " " + adds[ai].content.substring(1),
+                oldNumber: dels[di].oldNumber,
+                newNumber: adds[ai].newNumber,
+              });
+              di++; ai++; pi++;
+            }
+          }
+          // Any remaining unmatched adds
+          while (ai < adds.length) {
+            if (!matchedAdd.has(ai)) newLines.push(adds[ai]);
+            ai++;
+          }
         }
-      } else if (inHunk && line.startsWith(" ")) {
-        hunkLines.push(line);
-      } else {
-        flushHunk();
-        inHunk = false;
-        out.push(line);
-      }
-    }
-    flushHunk();
-    return out.join("\n");
+
+        // Keep block only if it has remaining changes
+        var hasChanges = newLines.some(function (l) { return l.type !== "context"; });
+        if (hasChanges) {
+          newBlocks.push({ oldStartLine: block.oldStartLine, newStartLine: block.newStartLine, header: block.header, lines: newLines });
+        }
+      });
+
+      // Recount added/deleted
+      var added = 0, deleted = 0;
+      newBlocks.forEach(function (b) {
+        b.lines.forEach(function (l) {
+          if (l.type === "insert") added++;
+          if (l.type === "delete") deleted++;
+        });
+      });
+
+      if (added === 0 && deleted === 0) return null; // File has only whitespace changes
+
+      return {
+        blocks: newBlocks,
+        deletedLines: deleted,
+        addedLines: added,
+        isCombined: file.isCombined,
+        isGitDiff: file.isGitDiff,
+        oldName: file.oldName,
+        newName: file.newName,
+        language: file.language,
+        oldMode: file.oldMode,
+        newMode: file.newMode,
+        checksumBefore: file.checksumBefore,
+        checksumAfter: file.checksumAfter,
+      };
+    }).filter(Boolean);
   }
 
   btnHideWhitespace.addEventListener("click", () => {
@@ -439,16 +520,16 @@
       },
     };
 
-    const renderRaw = hideWhitespace ? filterWhitespace(raw) : raw;
+    const parsed = Diff2Html.parse(raw);
+    const filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
 
     diffContainer.innerHTML = "";
-    const ui = new Diff2HtmlUI(diffContainer, renderRaw, config);
+    const ui = new Diff2HtmlUI(diffContainer, filtered, config);
     ui.draw();
     ui.highlightCode();
 
-    const parsed = Diff2Html.parse(renderRaw);
-    buildStats(parsed);
-    buildSidebarTree(parsed);
+    buildStats(filtered);
+    buildSidebarTree(filtered);
     updateShareUrl(raw);
 
     // Show sidebar for multi-file diffs (respect saved pref on first load)
@@ -460,6 +541,7 @@
 
     inputPanel.classList.add("hidden");
     outputPanel.classList.remove("hidden");
+    outputToolbar.classList.remove("hidden");
     showShortcutHint(parsed.length);
   }
 
@@ -615,6 +697,7 @@
 
   function goHome() {
     outputPanel.classList.add("hidden");
+    outputToolbar.classList.add("hidden");
     inputPanel.classList.remove("hidden");
     diffContainer.innerHTML = "";
     sidebarTree.innerHTML = "";
