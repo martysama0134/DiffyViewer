@@ -14,6 +14,31 @@
   --accent-hover: #79b8ff;
   --green: #3fb950;
   --red: #f85149;
+
+  /* diff2html dark theme custom properties */
+  --d2h-dark-bg-color: #161b22;
+  --d2h-dark-border-color: #30363d;
+  --d2h-dark-dim-color: #8b949e;
+  --d2h-dark-line-border-color: #30363d;
+  --d2h-dark-file-header-bg-color: #0d1117;
+  --d2h-dark-file-header-border-color: #30363d;
+  --d2h-dark-empty-placeholder-bg-color: #0d1117;
+  --d2h-dark-empty-placeholder-border-color: #30363d;
+  --d2h-dark-selected-color: rgba(88, 166, 255, 0.15);
+  --d2h-dark-ins-bg-color: rgba(63, 185, 80, 0.12);
+  --d2h-dark-ins-border-color: rgba(63, 185, 80, 0.25);
+  --d2h-dark-ins-highlight-bg-color: rgba(63, 185, 80, 0.30);
+  --d2h-dark-ins-label-color: #3fb950;
+  --d2h-dark-del-bg-color: rgba(248, 81, 73, 0.12);
+  --d2h-dark-del-border-color: rgba(248, 81, 73, 0.25);
+  --d2h-dark-del-highlight-bg-color: rgba(248, 81, 73, 0.30);
+  --d2h-dark-del-label-color: #f85149;
+  --d2h-dark-info-bg-color: rgba(88, 166, 255, 0.08);
+  --d2h-dark-info-border-color: rgba(88, 166, 255, 0.2);
+  --d2h-dark-change-del-color: rgba(248, 81, 73, 0.40);
+  --d2h-dark-change-ins-color: rgba(63, 185, 80, 0.40);
+  --d2h-dark-change-label-color: #d29922;
+  --d2h-dark-moved-label-color: #58a6ff;
 }
 
 body {
@@ -25,7 +50,7 @@ body {
   flex-direction: column;
 }
 
-/* Header */
+/* ── Header ── */
 header {
   display: flex;
   align-items: center;
@@ -33,6 +58,9 @@ header {
   padding: 12px 24px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .header-left {
@@ -51,7 +79,7 @@ header h1 {
   font-size: 13px;
 }
 
-/* View toggle */
+/* ── View toggle ── */
 .view-toggle {
   display: flex;
   border: 1px solid var(--border);
@@ -78,7 +106,7 @@ header h1 {
   color: #fff;
 }
 
-/* Buttons */
+/* ── Buttons ── */
 .btn {
   padding: 8px 18px;
   border: 1px solid var(--border);
@@ -112,28 +140,52 @@ header h1 {
   font-size: 12px;
 }
 
-/* Main */
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+/* ── Main ── */
 main {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-/* Input panel */
+/* ── Input panel ── */
 .input-panel {
   max-width: 860px;
   width: 100%;
-  margin: 48px auto;
+  margin: 40px auto;
   padding: 0 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .input-panel h2 {
   font-size: 16px;
   font-weight: 500;
   color: var(--text-muted);
+}
+
+.input-hints {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.input-hints code {
+  padding: 2px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
 }
 
 #diffInput {
@@ -148,11 +200,13 @@ main {
   font-size: 13px;
   line-height: 1.5;
   resize: vertical;
+  tab-size: 4;
 }
 
 #diffInput:focus {
   outline: none;
   border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
 }
 
 .input-actions {
@@ -161,7 +215,12 @@ main {
   align-items: center;
 }
 
-/* Output panel */
+.input-footer {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ── Output panel ── */
 .output-panel {
   flex: 1;
   display: flex;
@@ -176,9 +235,48 @@ main {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   gap: 12px;
-  flex-wrap: wrap;
 }
 
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  min-width: 0;
+  flex: 1;
+}
+
+.toolbar-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── Diff stats ── */
+.diff-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.diff-stats .stat-files {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.diff-stats .stat-add {
+  color: var(--green);
+}
+
+.diff-stats .stat-del {
+  color: var(--red);
+}
+
+/* ── File tree pills ── */
 .file-tree {
   display: flex;
   gap: 6px;
@@ -187,6 +285,9 @@ main {
 }
 
 .file-tree .file-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 3px 10px;
   font-size: 12px;
   font-family: "SFMono-Regular", Consolas, monospace;
@@ -205,108 +306,104 @@ main {
   color: var(--accent);
 }
 
-.diff-output {
+.file-pill .pill-stats {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.file-pill .pill-add { color: var(--green); }
+.file-pill .pill-del { color: var(--red); }
+
+/* ── Diff container ── */
+.diff-container {
   flex: 1;
   padding: 16px 24px;
   overflow: auto;
+}
+
+/* ── Shortcut hint toast ── */
+.shortcut-hint {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+  z-index: 50;
+  opacity: 1;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.shortcut-hint.fade-out {
+  opacity: 0;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* diff2html dark theme overrides */
+/* ── diff2html overrides (minimal — lean on CSS custom properties above) ── */
+
+/* Force dark scheme class since we always use dark theme */
 .d2h-wrapper {
-  background: transparent !important;
+  background: transparent;
 }
 
 .d2h-file-wrapper {
-  border: 1px solid var(--border) !important;
-  border-radius: 6px !important;
-  margin-bottom: 16px !important;
-  background: var(--surface) !important;
-}
-
-.d2h-file-header {
-  background: var(--bg) !important;
-  border-bottom: 1px solid var(--border) !important;
-  padding: 8px 12px !important;
-}
-
-.d2h-file-name-wrapper {
-  color: var(--text) !important;
-}
-
-.d2h-file-name {
-  color: var(--text) !important;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  overflow: hidden;
 }
 
 .d2h-diff-table {
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace !important;
-  font-size: 12px !important;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 12px;
 }
 
-.d2h-code-line,
-.d2h-code-side-line {
-  background: var(--surface) !important;
-  color: var(--text) !important;
+/* Sticky file headers */
+.d2h-file-header {
+  position: sticky;
+  top: 49px; /* below the main sticky header */
+  z-index: 5;
 }
 
-.d2h-code-line-ctn {
-  color: var(--text) !important;
+/* Ensure file collapse button is visible in dark mode */
+.d2h-file-collapse {
+  color: var(--text-muted);
+  cursor: pointer;
 }
 
-.d2h-del {
-  background: rgba(248, 81, 73, 0.15) !important;
+.d2h-file-collapse:hover {
+  color: var(--text);
 }
 
-.d2h-ins {
-  background: rgba(63, 185, 80, 0.15) !important;
+/* File stats badges */
+.d2h-file-stats {
+  font-size: 12px;
 }
 
-.d2h-del .d2h-code-line-ctn {
-  color: var(--text) !important;
-}
-
-.d2h-ins .d2h-code-line-ctn {
-  color: var(--text) !important;
-}
-
-.d2h-code-linenumber {
-  background: var(--bg) !important;
-  color: var(--text-muted) !important;
-  border-right: 1px solid var(--border) !important;
-}
-
-.d2h-code-side-linenumber {
-  background: var(--bg) !important;
-  color: var(--text-muted) !important;
-  border-right: 1px solid var(--border) !important;
-}
-
+/* Info line (hunk headers) */
 .d2h-info {
-  background: rgba(88, 166, 255, 0.1) !important;
-  color: var(--accent) !important;
+  border-bottom: 1px solid var(--border);
 }
 
-.d2h-emptyplaceholder {
-  background: var(--bg) !important;
-  border-right: 1px solid var(--border) !important;
-}
-
-.d2h-file-diff .d2h-del.d2h-change {
-  background: rgba(248, 81, 73, 0.15) !important;
-}
-
-.d2h-file-diff .d2h-ins.d2h-change {
-  background: rgba(63, 185, 80, 0.15) !important;
-}
-
+/* Hide the built-in file list — we use our own pill bar */
 .d2h-file-list-wrapper {
-  display: none !important;
+  display: none;
 }
 
-/* Drag-over indicator */
+/* Side-by-side panes get proper widths */
+.d2h-file-side-diff {
+  overflow-x: auto;
+}
+
+/* ── Drag-over indicator ── */
 body.drag-over::after {
   content: "Drop .diff / .patch file here";
   position: fixed;
@@ -320,4 +417,27 @@ body.drag-over::after {
   border: 3px dashed var(--accent);
   pointer-events: none;
   z-index: 999;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .output-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .toolbar-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .diff-container {
+    padding: 8px;
+  }
 }

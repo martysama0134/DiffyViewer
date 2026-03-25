@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DiffyViewer</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html/bundles/css/diff2html.min.css">
+  <!-- highlight.js dark theme MUST load before diff2html css -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -22,29 +24,50 @@
   </header>
 
   <main>
-    <!-- Input panel: shown when no diff is loaded -->
+    <!-- Input panel -->
     <section id="inputPanel" class="input-panel">
       <h2>Paste or upload a diff / patch</h2>
-      <textarea id="diffInput" placeholder="Paste unified diff or git diff output here..."></textarea>
+      <div class="input-hints">
+        <code>git diff | clip</code> on Windows &middot;
+        <code>git diff | pbcopy</code> on Mac &middot;
+        <code>git diff &gt; file.patch</code> then upload
+      </div>
+      <textarea id="diffInput" placeholder="Paste unified diff or git diff output here..."
+                spellcheck="false"></textarea>
       <div class="input-actions">
         <button id="btnDiff" class="btn primary">View Diff</button>
         <label class="btn secondary" for="fileUpload">Upload .diff / .patch</label>
         <input type="file" id="fileUpload" accept=".diff,.patch,.txt" hidden>
         <button id="btnSample" class="btn secondary">Load Sample</button>
       </div>
+      <div class="input-footer">
+        <kbd>Ctrl+Enter</kbd> to submit &middot; or drag &amp; drop a file anywhere
+      </div>
     </section>
 
-    <!-- Output panel: shown when diff is rendered -->
+    <!-- Output panel -->
     <section id="outputPanel" class="output-panel hidden">
       <div class="output-toolbar">
-        <div id="fileTree" class="file-tree"></div>
-        <button id="btnBack" class="btn secondary btn-sm">New Diff</button>
+        <div class="toolbar-left">
+          <div id="diffStats" class="diff-stats"></div>
+          <div id="fileTree" class="file-tree"></div>
+        </div>
+        <div class="toolbar-right">
+          <button id="btnCollapseAll" class="btn secondary btn-sm" title="Collapse / expand all files">Collapse All</button>
+          <button id="btnDownload" class="btn secondary btn-sm" title="Download as .patch file">Download</button>
+          <button id="btnBack" class="btn secondary btn-sm">New Diff</button>
+        </div>
       </div>
-      <div id="diffOutput" class="diff-output"></div>
+      <div id="diffContainer" class="diff-container"></div>
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/diff2html/bundles/js/diff2html.min.js"></script>
+  <div id="shortcutHint" class="shortcut-hint hidden">
+    <kbd>j</kbd>/<kbd>k</kbd> next/prev file &middot; <kbd>Esc</kbd> back
+  </div>
+
+  <!-- Use UI slim bundle: includes hljs with common languages + synchronized scroll + collapsible files -->
+  <script src="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/js/diff2html-ui-slim.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
