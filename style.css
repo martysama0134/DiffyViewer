@@ -565,6 +565,45 @@ main {
   max-width: 900px;
 }
 
+.tutorial-index {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.tutorial-index-header {
+  background: var(--surface);
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.tutorial-index ul {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+}
+
+.tutorial-index li {
+  padding: 4px 14px;
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.tutorial-index a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.tutorial-index a:hover {
+  text-decoration: underline;
+}
+
 .tutorial-file {
   border: 1px solid var(--border);
   border-radius: 6px;

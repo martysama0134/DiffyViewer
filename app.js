@@ -699,8 +699,21 @@
         '.tutorial-instruction-remove{color:' + t.red + '}\n' +
         '.tutorial-code-wrap{position:relative}\n' +
         '.tutorial-code{background:' + t.bg + ';border:1px solid ' + t.border + ';border-radius:4px;padding:10px 12px;font-family:monospace;font-size:12px;line-height:1.5;overflow-x:auto;white-space:pre;margin:0}\n' +
-        '.tutorial-copy{display:none}\n';
+        '.tutorial-index{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
+        '.tutorial-index-header{background:' + t.surface + ';padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:' + t.textMuted + ';border-bottom:1px solid ' + t.border + '}\n' +
+        '.tutorial-index ul{list-style:none;margin:0;padding:6px 0}\n' +
+        '.tutorial-index li{padding:4px 14px;font-family:monospace;font-size:13px}\n' +
+        '.tutorial-index a{color:' + t.accent + ';text-decoration:none}\n' +
+        '.tutorial-index a:hover{text-decoration:underline}\n' +
+        '.tutorial-copy{position:absolute;top:6px;right:6px;background:' + t.surface + ';border:1px solid ' + t.border + ';color:' + t.textMuted + ';font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer}\n' +
+        '.tutorial-copy:hover{color:' + t.text + ';border-color:' + t.accent + '}\n';
     }
+    var exportContent = tutorialActive
+      ? generateTutorialHtml(Diff2Html.parse(currentRaw), true)
+      : diffContainer.innerHTML;
+    var exportScript = tutorialActive
+      ? '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".tutorial-copy");if(!btn)return;var pre=btn.parentElement.querySelector(".tutorial-code");if(!pre)return;navigator.clipboard.writeText(pre.textContent).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)})});<\/script>\n'
+      : '';
     const html = '<!DOCTYPE html>\n<html lang="en"><head>\n' +
       '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n' +
       '<title>DiffyViewer Export</title>\n' +
@@ -716,8 +729,8 @@
       tutorialCss +
       '</style>\n' +
       '</head><body>\n' +
-      diffContainer.innerHTML +
-      '\n</body></html>';
+      exportContent +
+      '\n' + exportScript + '</body></html>';
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -736,15 +749,28 @@
     return line.length > 0 ? line.substring(1) : "";
   }
 
-  function generateTutorialHtml(parsed) {
+  function generateTutorialHtml(parsed, forExport) {
     let html = '<div class="tutorial-view">';
 
-    parsed.forEach(function (file) {
+    // File index for export
+    if (forExport && parsed.length > 1) {
+      html += '<div class="tutorial-index"><div class="tutorial-index-header">Files</div><ul>';
+      parsed.forEach(function (file, idx) {
+        var fp = file.newName || file.oldName || "(unknown)";
+        var badge = "";
+        if (file.oldName === "/dev/null") badge = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
+        else if (file.newName === "/dev/null") badge = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
+        html += '<li><a href="#tutorial-file-' + idx + '">' + esc(fp) + '</a>' + badge + '</li>';
+      });
+      html += '</ul></div>';
+    }
+
+    parsed.forEach(function (file, idx) {
       const filePath = file.newName || file.oldName || "(unknown)";
       const isNew = file.oldName === "/dev/null";
       const isDeleted = file.newName === "/dev/null";
 
-      html += '<div class="tutorial-file">';
+      html += '<div class="tutorial-file" id="tutorial-file-' + idx + '">';
       html += '<div class="tutorial-file-header">';
       if (isNew) {
         html += '<span class="tutorial-action-badge tutorial-badge-new">NEW FILE</span> ';
