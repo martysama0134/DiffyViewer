@@ -612,13 +612,16 @@
     if (raw) renderDiff(raw);
   });
 
-  btnBack.addEventListener("click", () => {
+  function goHome() {
     outputPanel.classList.add("hidden");
     inputPanel.classList.remove("hidden");
     diffContainer.innerHTML = "";
     sidebarTree.innerHTML = "";
     diffStats.innerHTML = "";
-  });
+  }
+
+  btnBack.addEventListener("click", goHome);
+  $("#logo").addEventListener("click", goHome);
 
   // ═══════════════════════════════════════════════════════════
   // File upload
