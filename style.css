@@ -596,15 +596,29 @@ body.drag-over::after {
 
   .sidebar {
     position: fixed;
-    top: 49px;
+    top: 0;
     left: 0;
     bottom: 0;
-    z-index: 8;
+    width: min(280px, 80vw);
+    min-width: 0;
+    z-index: 100;
     box-shadow: 4px 0 12px rgba(0, 0, 0, 0.4);
   }
 
   .sidebar.collapsed {
     box-shadow: none;
+    display: none;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+
+  .sidebar-backdrop.hidden {
+    display: none;
   }
 
   .diff-container {

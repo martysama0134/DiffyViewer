@@ -207,6 +207,7 @@
   const diffContainer = $("#diffContainer");
   const diffStats = $("#diffStats");
   const sidebar = $("#sidebar");
+  const sidebarBackdrop = $("#sidebarBackdrop");
   const sidebarTree = $("#sidebarTree");
   const btnDiff = $("#btnDiff");
   const btnBack = $("#btnBack");
@@ -487,12 +488,16 @@
   // ═══════════════════════════════════════════════════════════
   // Sidebar toggle
   // ═══════════════════════════════════════════════════════════
-  btnToggleSidebar.addEventListener("click", () => {
-    sidebarVisible = !sidebarVisible;
+  function setSidebar(visible) {
+    sidebarVisible = visible;
     sidebar.classList.toggle("collapsed", !sidebarVisible);
     btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
+    if (isMobile) sidebarBackdrop.classList.toggle("hidden", !sidebarVisible);
     savePrefs();
-  });
+  }
+
+  btnToggleSidebar.addEventListener("click", () => setSidebar(!sidebarVisible));
+  sidebarBackdrop.addEventListener("click", () => setSidebar(false));
 
   // ═══════════════════════════════════════════════════════════
   // Render diff
@@ -539,6 +544,7 @@
     }
     sidebar.classList.toggle("collapsed", !sidebarVisible);
     btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
+    if (isMobile) sidebarBackdrop.classList.toggle("hidden", !sidebarVisible);
 
     inputPanel.classList.add("hidden");
     outputPanel.classList.remove("hidden");
@@ -610,7 +616,7 @@
         statsHtml = '<span class="tree-stats">' + p.join("") + "</span>";
       }
       el.innerHTML = '<span class="tree-filename">' + esc(file.name) + "</span>" + statsHtml;
-      el.addEventListener("click", () => { scrollToFile(file.idx); highlightTreeFile(file.idx); });
+      el.addEventListener("click", () => { scrollToFile(file.idx); highlightTreeFile(file.idx); if (isMobile) setSidebar(false); });
       container.appendChild(el);
     });
   }
@@ -928,6 +934,7 @@ index 9f8e7d6..3c2b1a0 100644
     // Restore sidebar state
     btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
     sidebar.classList.toggle("collapsed", !sidebarVisible);
+    if (isMobile) sidebarBackdrop.classList.toggle("hidden", !sidebarVisible);
 
     // Load diff from URL hash if present
     const hash = location.hash.slice(1);
