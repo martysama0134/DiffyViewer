@@ -754,6 +754,29 @@
     return line.length > 0 ? line.substring(1) : "";
   }
 
+  // Map file extension to hljs language name; returns " language-xxx" or ""
+  function langSuffix(file) {
+    var name = file.newName || file.oldName || "";
+    var ext = name.split(".").pop().toLowerCase();
+    var map = {
+      py: "python", js: "javascript", ts: "typescript", jsx: "javascript", tsx: "typescript",
+      rb: "ruby", rs: "rust", go: "go", java: "java", c: "c", cpp: "cpp", cc: "cpp",
+      h: "c", hpp: "cpp", hh: "cpp", cs: "csharp", php: "php", lua: "lua",
+      sh: "bash", bash: "bash", zsh: "bash", bat: "dos", cmd: "dos", ps1: "powershell",
+      yml: "yaml", yaml: "yaml", json: "json", xml: "xml", html: "html", css: "css",
+      scss: "scss", less: "less", sql: "sql", md: "markdown", r: "r", swift: "swift",
+      kt: "kotlin", scala: "scala", pl: "perl", m: "objectivec", mm: "objectivec",
+      hs: "haskell", ex: "elixir", erl: "erlang", clj: "clojure", dart: "dart",
+      v: "verilog", sv: "verilog", vhd: "vhdl", zig: "zig", nim: "nim",
+      makefile: "makefile", dockerfile: "dockerfile", cmake: "cmake",
+      toml: "ini", ini: "ini", conf: "ini", cfg: "ini", proto: "protobuf",
+    };
+    // Handle extensionless files like Makefile, Dockerfile
+    var basename = name.split("/").pop().toLowerCase();
+    var lang = map[ext] || map[basename] || "";
+    return lang ? " language-" + lang : "";
+  }
+
   function parseCommitMeta(raw) {
     var lines = raw.split("\n");
     var meta = { author: "", date: "", subject: "", body: "" };
@@ -823,6 +846,7 @@
       const filePath = file.newName || file.oldName || "(unknown)";
       const isNew = file.oldName === "/dev/null";
       const isDeleted = file.newName === "/dev/null";
+      const ls = langSuffix(file);
       html += '<div class="tutorial-file" id="tutorial-file-' + idx + '">';
       html += '<div class="tutorial-file-header">';
       if (isNew) {
@@ -844,7 +868,7 @@
         html += '<div class="tutorial-step">';
         html += '<div class="tutorial-instruction">Create this file with the following content:</div>';
         html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-        html += '<pre class="tutorial-code">' + esc(content.replace(/\n$/, "")) + '</pre></div>';
+        html += '<pre class="tutorial-code' + ls + '">' + esc(content.replace(/\n$/, "")) + '</pre></div>';
         html += '</div>';
       } else if (isDeleted) {
         html += '<div class="tutorial-step">';
@@ -894,10 +918,10 @@
               var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
               html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
               html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-find">' + esc(findText) + '</pre></div>';
+              html += '<pre class="tutorial-code tutorial-code-find' + ls + '">' + esc(findText) + '</pre></div>';
               html += '<div class="tutorial-instruction tutorial-instruction-replace">Replace with:</div>';
               html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-replace">' + esc(replaceText) + '</pre></div>';
+              html += '<pre class="tutorial-code tutorial-code-replace' + ls + '">' + esc(replaceText) + '</pre></div>';
             } else if (adds.length > 0) {
               // Add — show what comes before so user knows where to insert
               var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
@@ -905,19 +929,19 @@
                 var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
                 html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
                 html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-                html += '<pre class="tutorial-code tutorial-code-find">' + esc(anchorText) + '</pre></div>';
+                html += '<pre class="tutorial-code tutorial-code-find' + ls + '">' + esc(anchorText) + '</pre></div>';
                 html += '<div class="tutorial-instruction tutorial-instruction-add">Add below:</div>';
               } else {
                 html += '<div class="tutorial-instruction tutorial-instruction-add">Add at the beginning of the section:</div>';
               }
               html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-add">' + esc(addText) + '</pre></div>';
+              html += '<pre class="tutorial-code tutorial-code-add' + ls + '">' + esc(addText) + '</pre></div>';
             } else if (dels.length > 0) {
               // Remove
               var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
               html += '<div class="tutorial-instruction tutorial-instruction-remove">Remove:</div>';
               html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-remove">' + esc(removeText) + '</pre></div>';
+              html += '<pre class="tutorial-code tutorial-code-remove' + ls + '">' + esc(removeText) + '</pre></div>';
             }
 
             html += '</div>'; // tutorial-step
@@ -954,6 +978,11 @@
       var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
       savedDiffHtml = diffContainer.innerHTML;
       diffContainer.innerHTML = generateTutorialHtml(filtered, false, currentRaw);
+      if (typeof hljs !== "undefined") {
+        diffContainer.querySelectorAll("pre[class*='language-']").forEach(function (el) {
+          hljs.highlightElement(el);
+        });
+      }
       diffContainer.addEventListener("click", handleTutorialCopy);
     } else {
       diffContainer.removeEventListener("click", handleTutorialCopy);
