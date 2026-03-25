@@ -339,30 +339,42 @@
   // ═══════════════════════════════════════════════════════════
   function applyWrapInlineStyles(enable) {
     if (enable) {
+      // Containers: kill horizontal scroll
+      diffContainer.querySelectorAll(".d2h-file-side-diff, .d2h-code-wrapper, .d2h-file-diff, .d2h-files-diff").forEach((el) => {
+        el.style.setProperty("overflow-x", "hidden", "important");
+      });
+      // Tables: fixed layout so columns don't expand to content
       diffContainer.querySelectorAll(".d2h-diff-table").forEach((el) => {
         el.style.setProperty("table-layout", "fixed", "important");
         el.style.setProperty("width", "100%", "important");
       });
+      // Line containers: flex so prefix + content share space properly
       diffContainer.querySelectorAll(".d2h-code-line, .d2h-code-side-line").forEach((el) => {
-        el.style.setProperty("display", "block", "important");
-        el.style.setProperty("width", "auto", "important");
-        el.style.setProperty("white-space", "pre-wrap", "important");
-        el.style.setProperty("word-wrap", "break-word", "important");
-        el.style.setProperty("overflow-wrap", "anywhere", "important");
+        el.style.setProperty("display", "flex", "important");
+        el.style.setProperty("width", "100%", "important");
+        el.style.setProperty("min-width", "0", "important");
+        el.style.setProperty("white-space", "normal", "important");
       });
-      diffContainer.querySelectorAll(".d2h-code-line-ctn").forEach((el) => {
-        el.style.setProperty("white-space", "pre-wrap", "important");
-        el.style.setProperty("word-wrap", "break-word", "important");
-        el.style.setProperty("overflow-wrap", "anywhere", "important");
-      });
+      // Prefix (+/-/space): fixed, no shrink
       diffContainer.querySelectorAll(".d2h-code-line-prefix").forEach((el) => {
-        el.style.setProperty("white-space", "pre-wrap", "important");
+        el.style.setProperty("flex", "0 0 auto", "important");
+        el.style.setProperty("white-space", "pre", "important");
       });
-      diffContainer.querySelectorAll(".d2h-file-side-diff, .d2h-code-wrapper, .d2h-file-diff, .d2h-files-diff").forEach((el) => {
-        el.style.setProperty("overflow-x", "hidden", "important");
+      // Code content: CRITICAL — width:auto removes the width:100% that
+      // caused infinite overflow (100% of inline-block parent = content size)
+      diffContainer.querySelectorAll(".d2h-code-line-ctn").forEach((el) => {
+        el.style.setProperty("display", "block", "important");
+        el.style.setProperty("flex", "1 1 auto", "important");
+        el.style.setProperty("min-width", "0", "important");
+        el.style.setProperty("width", "auto", "important");
+        el.style.setProperty("max-width", "100%", "important");
+        el.style.setProperty("white-space", "pre-wrap", "important");
+        el.style.setProperty("overflow-wrap", "anywhere", "important");
+        el.style.setProperty("word-break", "break-word", "important");
       });
     } else {
-      const props = ["table-layout", "width", "display", "white-space", "word-wrap", "overflow-wrap", "overflow-x"];
+      const props = ["table-layout", "width", "min-width", "max-width", "display",
+        "flex", "white-space", "word-wrap", "word-break", "overflow-wrap", "overflow-x"];
       diffContainer.querySelectorAll(".d2h-diff-table, .d2h-code-line, .d2h-code-side-line, .d2h-code-line-ctn, .d2h-code-line-prefix, .d2h-file-side-diff, .d2h-code-wrapper, .d2h-file-diff, .d2h-files-diff").forEach((el) => {
         props.forEach((p) => el.style.removeProperty(p));
       });
