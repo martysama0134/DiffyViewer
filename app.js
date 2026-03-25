@@ -264,6 +264,7 @@
     s.setProperty("--accent-hover", t.accentHover);
     s.setProperty("--green", t.green);
     s.setProperty("--red", t.red);
+    s.setProperty("--yellow", t.yellow);
 
     // diff2html custom properties
     const prefix = t.type === "dark" ? "--d2h-dark-" : "--d2h-";
