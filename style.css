@@ -559,6 +559,130 @@ main {
   overflow-x: auto;
 }
 
+/* ── Tutorial view ── */
+.tutorial-view {
+  padding: 16px;
+  max-width: 900px;
+}
+
+.tutorial-file {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.tutorial-file-header {
+  background: var(--surface);
+  padding: 10px 14px;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.tutorial-file-path {
+  color: var(--accent);
+}
+
+.tutorial-action-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+.tutorial-badge-new {
+  background: var(--green);
+  color: #000;
+}
+
+.tutorial-badge-delete {
+  background: var(--red);
+  color: #fff;
+}
+
+.tutorial-step {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tutorial-step:last-child {
+  border-bottom: none;
+}
+
+.tutorial-instruction {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.tutorial-instruction-find {
+  color: var(--yellow, var(--text-muted));
+}
+
+.tutorial-instruction-replace {
+  color: var(--accent);
+  margin-top: 10px;
+}
+
+.tutorial-instruction-add {
+  color: var(--green);
+  margin-top: 10px;
+}
+
+.tutorial-instruction-remove {
+  color: var(--red);
+}
+
+.tutorial-code-wrap {
+  position: relative;
+}
+
+.tutorial-code {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--text);
+  margin: 0;
+}
+
+.tutorial-copy {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.tutorial-code-wrap:hover .tutorial-copy {
+  opacity: 1;
+}
+
+.tutorial-copy:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
 /* ── Drag-over indicator ── */
 body.drag-over::after {
   content: "Drop .diff / .patch file here";

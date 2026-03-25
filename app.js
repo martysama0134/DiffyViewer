@@ -214,6 +214,7 @@
   const btnSample = $("#btnSample");
   const btnDownload = $("#btnDownload");
   const btnDownloadHtml = $("#btnDownloadHtml");
+  const btnTutorial = $("#btnTutorial");
   const btnCollapseAll = $("#btnCollapseAll");
   const btnToggleSidebar = $("#btnToggleSidebar");
   const btnHideWhitespace = $("#btnHideWhitespace");
@@ -506,6 +507,13 @@
     currentRaw = raw;
     collapsed = false;
     btnCollapseAll.textContent = "Collapse All";
+    // Exit tutorial mode on re-render
+    if (tutorialActive) {
+      tutorialActive = false;
+      btnTutorial.classList.remove("btn-active");
+      diffContainer.removeEventListener("click", handleTutorialCopy);
+      savedDiffHtml = "";
+    }
 
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
 
@@ -692,6 +700,164 @@
     const a = document.createElement("a");
     a.href = url; a.download = "diff.html"; a.click();
     URL.revokeObjectURL(url);
+  });
+
+  // ═══════════════════════════════════════════════════════════
+  // Tutorial view
+  // ═══════════════════════════════════════════════════════════
+  let tutorialActive = false;
+  let savedDiffHtml = "";
+
+  function stripPrefix(line) {
+    // Remove the leading +/-/space character from diff lines
+    return line.length > 0 ? line.substring(1) : "";
+  }
+
+  function generateTutorialHtml(parsed) {
+    let html = '<div class="tutorial-view">';
+
+    parsed.forEach(function (file) {
+      const filePath = file.newName || file.oldName || "(unknown)";
+      const isNew = file.oldName === "/dev/null";
+      const isDeleted = file.newName === "/dev/null";
+
+      html += '<div class="tutorial-file">';
+      html += '<div class="tutorial-file-header">';
+      if (isNew) {
+        html += '<span class="tutorial-action-badge tutorial-badge-new">NEW FILE</span> ';
+      } else if (isDeleted) {
+        html += '<span class="tutorial-action-badge tutorial-badge-delete">DELETE FILE</span> ';
+      }
+      html += '<span class="tutorial-file-path">' + esc(filePath) + '</span>';
+      html += '</div>';
+
+      if (isNew) {
+        // New file: show full content to create
+        var content = "";
+        file.blocks.forEach(function (block) {
+          block.lines.forEach(function (line) {
+            if (line.type === "insert") content += stripPrefix(line.content) + "\n";
+          });
+        });
+        html += '<div class="tutorial-step">';
+        html += '<div class="tutorial-instruction">Create this file with the following content:</div>';
+        html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
+        html += '<pre class="tutorial-code">' + esc(content.replace(/\n$/, "")) + '</pre></div>';
+        html += '</div>';
+      } else if (isDeleted) {
+        html += '<div class="tutorial-step">';
+        html += '<div class="tutorial-instruction">Delete this file.</div>';
+        html += '</div>';
+      } else {
+        // Modified file: generate find/replace steps per hunk
+        file.blocks.forEach(function (block) {
+          var lines = block.lines;
+          // Split hunk into groups: sequences of changes with surrounding context
+          var i = 0;
+          while (i < lines.length) {
+            // Skip leading context
+            while (i < lines.length && lines[i].type === "context") { i++; }
+            if (i >= lines.length) break;
+
+            // Grab context before (up to 2 lines)
+            var contextBefore = [];
+            var cb = i - 1;
+            while (cb >= 0 && lines[cb].type === "context" && contextBefore.length < 2) {
+              contextBefore.unshift(lines[cb]);
+              cb--;
+            }
+
+            // Collect consecutive changes
+            var dels = [];
+            var adds = [];
+            while (i < lines.length && (lines[i].type === "delete" || lines[i].type === "insert")) {
+              if (lines[i].type === "delete") dels.push(lines[i]);
+              else adds.push(lines[i]);
+              i++;
+            }
+
+            // Grab context after (up to 2 lines)
+            var contextAfter = [];
+            var ca = i;
+            while (ca < lines.length && lines[ca].type === "context" && contextAfter.length < 2) {
+              contextAfter.push(lines[ca]);
+              ca++;
+            }
+
+            html += '<div class="tutorial-step">';
+
+            if (dels.length > 0 && adds.length > 0) {
+              // Replace
+              var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
+              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
+              html += '<pre class="tutorial-code tutorial-code-find">' + esc(findText) + '</pre></div>';
+              html += '<div class="tutorial-instruction tutorial-instruction-replace">Replace with:</div>';
+              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
+              html += '<pre class="tutorial-code tutorial-code-replace">' + esc(replaceText) + '</pre></div>';
+            } else if (adds.length > 0) {
+              // Add — show what comes before so user knows where to insert
+              var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              if (contextBefore.length > 0) {
+                var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
+                html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
+                html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
+                html += '<pre class="tutorial-code tutorial-code-find">' + esc(anchorText) + '</pre></div>';
+                html += '<div class="tutorial-instruction tutorial-instruction-add">Add below:</div>';
+              } else {
+                html += '<div class="tutorial-instruction tutorial-instruction-add">Add at the beginning of the section:</div>';
+              }
+              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
+              html += '<pre class="tutorial-code tutorial-code-add">' + esc(addText) + '</pre></div>';
+            } else if (dels.length > 0) {
+              // Remove
+              var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              html += '<div class="tutorial-instruction tutorial-instruction-remove">Remove:</div>';
+              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
+              html += '<pre class="tutorial-code tutorial-code-remove">' + esc(removeText) + '</pre></div>';
+            }
+
+            html += '</div>'; // tutorial-step
+          }
+        });
+      }
+
+      html += '</div>'; // tutorial-file
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  function handleTutorialCopy(e) {
+    var btn = e.target.closest(".tutorial-copy");
+    if (!btn) return;
+    var pre = btn.parentElement.querySelector(".tutorial-code");
+    if (!pre) return;
+    navigator.clipboard.writeText(pre.textContent).then(function () {
+      var orig = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(function () { btn.textContent = orig; }, 1500);
+    });
+  }
+
+  btnTutorial.addEventListener("click", function () {
+    if (!currentRaw) return;
+    tutorialActive = !tutorialActive;
+    btnTutorial.classList.toggle("btn-active", tutorialActive);
+
+    if (tutorialActive) {
+      var parsed = Diff2Html.parse(currentRaw);
+      var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
+      savedDiffHtml = diffContainer.innerHTML;
+      diffContainer.innerHTML = generateTutorialHtml(filtered);
+      diffContainer.addEventListener("click", handleTutorialCopy);
+    } else {
+      diffContainer.removeEventListener("click", handleTutorialCopy);
+      diffContainer.innerHTML = savedDiffHtml;
+      savedDiffHtml = "";
+    }
   });
 
   // ═══════════════════════════════════════════════════════════
