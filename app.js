@@ -227,8 +227,9 @@
   // ═══════════════════════════════════════════════════════════
   const prefs = loadPrefs();
   let currentThemeName = prefs.theme;
-  let currentMode = prefs.viewMode;
-  let sidebarVisible = prefs.sidebar;
+  const isMobile = window.matchMedia("(max-width: 768px)").matches;
+  let currentMode = isMobile ? "line-by-line" : prefs.viewMode;
+  let sidebarVisible = isMobile ? false : prefs.sidebar;
   let hideWhitespace = prefs.hideWhitespace;
   let currentRaw = "";
   let collapsed = false;
