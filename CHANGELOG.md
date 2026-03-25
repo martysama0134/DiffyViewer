@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.1.0
+
+### Improvements
+
+- Default to unified view and hidden sidebar on mobile for better usability
+- Mobile sidebar is now a full-height drawer overlay with backdrop dismiss
+- Tapping a file in the tree auto-closes the sidebar on mobile
+
 ## v1.0.0
 
 Initial release.
