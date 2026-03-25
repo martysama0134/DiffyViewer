@@ -633,7 +633,7 @@
   // Collapse all
   // ═══════════════════════════════════════════════════════════
   btnCollapseAll.addEventListener("click", () => {
-    const bodies = diffContainer.querySelectorAll(".d2h-file-diff");
+    const bodies = diffContainer.querySelectorAll(".d2h-file-diff, .d2h-files-diff");
     const btns = diffContainer.querySelectorAll(".d2h-file-collapse");
     if (!collapsed) {
       bodies.forEach((b) => (b.style.display = "none"));
