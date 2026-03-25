@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.2.0
+
+### Features
+
+- **Tutorial view** — converts diffs into human-readable find/replace instructions (Find → Replace with, Find → Add below, Remove, New file, Delete file)
+- Per-block copy buttons in tutorial view for easy forum pasting
+- Tutorial HTML export with clickable file tree index and inline copy buttons
+
 ## v1.1.0
 
 ### Improvements
