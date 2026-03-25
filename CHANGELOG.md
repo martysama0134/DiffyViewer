@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.3.0
+
+### Features
+
+- **Syntax highlighting in tutorial view** — code blocks are highlighted via highlight.js based on file extension
+- **Commit metadata in tutorial view** — displays author, date, subject, and description when available (supports `git log -p` and `git format-patch` output)
+
+### Fixes
+
+- Fix script loading race on hard-refresh by deferring app.js
+
 ## v1.2.0
 
 ### Features
