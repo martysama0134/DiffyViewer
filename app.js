@@ -683,6 +683,11 @@
     if (tutorialActive) {
       tutorialCss =
         '.tutorial-view{max-width:900px}\n' +
+        '.tutorial-commit{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;padding:16px;background:' + t.surface + '}\n' +
+        '.tutorial-commit-subject{font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3}\n' +
+        '.tutorial-commit-meta{display:flex;gap:16px;font-size:13px;color:' + t.textMuted + ';flex-wrap:wrap}\n' +
+        '.tutorial-commit-author{color:' + t.accent + '}\n' +
+        '.tutorial-commit-body{margin-top:12px;padding-top:12px;border-top:1px solid ' + t.border + ';font-size:13px;line-height:1.5;white-space:pre-wrap}\n' +
         '.tutorial-file{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
         '.tutorial-file-header{background:' + t.surface + ';padding:10px 14px;font-family:monospace;font-size:13px;font-weight:600;border-bottom:1px solid ' + t.border + '}\n' +
         '.tutorial-file-path{color:' + t.accent + '}\n' +
@@ -709,7 +714,7 @@
         '.tutorial-copy:hover{color:' + t.text + ';border-color:' + t.accent + '}\n';
     }
     var exportContent = tutorialActive
-      ? generateTutorialHtml(Diff2Html.parse(currentRaw), true)
+      ? generateTutorialHtml(Diff2Html.parse(currentRaw), true, currentRaw)
       : diffContainer.innerHTML;
     var exportScript = tutorialActive
       ? '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".tutorial-copy");if(!btn)return;var pre=btn.parentElement.querySelector(".tutorial-code");if(!pre)return;navigator.clipboard.writeText(pre.textContent).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)})});<\/script>\n'
@@ -749,8 +754,57 @@
     return line.length > 0 ? line.substring(1) : "";
   }
 
-  function generateTutorialHtml(parsed, forExport) {
+  function parseCommitMeta(raw) {
+    var lines = raw.split("\n");
+    var meta = { author: "", date: "", subject: "", body: "" };
+    var i = 0;
+
+    // git log -p format: "commit <hash>"
+    if (/^commit [0-9a-f]{7,}/.test(lines[0])) {
+      i = 1;
+      while (i < lines.length && !lines[i].startsWith("diff ")) {
+        var line = lines[i];
+        if (/^Author:\s+/i.test(line)) meta.author = line.replace(/^Author:\s+/i, "").trim();
+        else if (/^Date:\s+/i.test(line)) meta.date = line.replace(/^Date:\s+/i, "").trim();
+        else if (line.startsWith("    ") && !meta.subject) meta.subject = line.trim();
+        else if (line.startsWith("    ") && meta.subject) meta.body += (meta.body ? "\n" : "") + line.trim();
+        i++;
+      }
+    }
+    // git format-patch format: "From <hash>" or starts with "From:"
+    else if (/^From [0-9a-f]{7,}/.test(lines[0]) || /^From:\s+/.test(lines[0])) {
+      i = /^From [0-9a-f]/.test(lines[0]) ? 1 : 0;
+      var inBody = false;
+      while (i < lines.length && !lines[i].startsWith("diff ") && lines[i] !== "---") {
+        var line = lines[i];
+        if (/^From:\s+/i.test(line)) meta.author = line.replace(/^From:\s+/i, "").trim();
+        else if (/^Date:\s+/i.test(line)) meta.date = line.replace(/^Date:\s+/i, "").trim();
+        else if (/^Subject:\s+/i.test(line)) { meta.subject = line.replace(/^Subject:\s+(\[PATCH[^\]]*\]\s*)?/i, "").trim(); inBody = true; }
+        else if (inBody && line === "") inBody = true;
+        else if (inBody && line !== "---") meta.body += (meta.body ? "\n" : "") + line;
+        i++;
+      }
+    }
+
+    if (!meta.author && !meta.subject) return null;
+    return meta;
+  }
+
+  function generateTutorialHtml(parsed, forExport, raw) {
     let html = '<div class="tutorial-view">';
+
+    // Commit metadata header
+    var meta = raw ? parseCommitMeta(raw) : null;
+    if (meta) {
+      html += '<div class="tutorial-commit">';
+      if (meta.subject) html += '<div class="tutorial-commit-subject">' + esc(meta.subject) + '</div>';
+      html += '<div class="tutorial-commit-meta">';
+      if (meta.author) html += '<span class="tutorial-commit-author">' + esc(meta.author) + '</span>';
+      if (meta.date) html += '<span class="tutorial-commit-date">' + esc(meta.date) + '</span>';
+      html += '</div>';
+      if (meta.body) html += '<div class="tutorial-commit-body">' + esc(meta.body) + '</div>';
+      html += '</div>';
+    }
 
     // File index for export
     if (forExport && parsed.length > 1) {
@@ -769,7 +823,6 @@
       const filePath = file.newName || file.oldName || "(unknown)";
       const isNew = file.oldName === "/dev/null";
       const isDeleted = file.newName === "/dev/null";
-
       html += '<div class="tutorial-file" id="tutorial-file-' + idx + '">';
       html += '<div class="tutorial-file-header">';
       if (isNew) {
@@ -900,7 +953,7 @@
       var parsed = Diff2Html.parse(currentRaw);
       var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
       savedDiffHtml = diffContainer.innerHTML;
-      diffContainer.innerHTML = generateTutorialHtml(filtered);
+      diffContainer.innerHTML = generateTutorialHtml(filtered, false, currentRaw);
       diffContainer.addEventListener("click", handleTutorialCopy);
     } else {
       diffContainer.removeEventListener("click", handleTutorialCopy);

@@ -565,6 +565,44 @@ main {
   max-width: 900px;
 }
 
+.tutorial-commit {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--surface);
+}
+
+.tutorial-commit-subject {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.tutorial-commit-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.tutorial-commit-author {
+  color: var(--accent);
+}
+
+.tutorial-commit-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
 .tutorial-index {
   border: 1px solid var(--border);
   border-radius: 6px;
