@@ -275,6 +275,34 @@ main {
   flex-shrink: 0;
 }
 
+/* ── Share URL ── */
+.share-url {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  max-width: 420px;
+}
+
+.share-url input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 8px;
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  outline: none;
+  cursor: text;
+}
+
+.share-url input:focus {
+  border-color: var(--accent);
+}
+
 /* ── Diff stats ── */
 .diff-stats {
   display: flex;

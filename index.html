@@ -51,6 +51,10 @@
       <div class="output-toolbar">
         <div class="toolbar-left">
           <div id="diffStats" class="diff-stats"></div>
+          <div class="share-url">
+            <input id="shareInput" type="text" readonly title="Shareable URL">
+            <button id="btnCopyUrl" class="btn secondary btn-sm" title="Copy URL to clipboard">Copy</button>
+          </div>
         </div>
         <div class="toolbar-right">
           <button id="btnToggleSidebar" class="btn secondary btn-sm" title="Toggle file tree sidebar">Tree</button>
@@ -79,6 +83,8 @@
     <kbd>Esc</kbd> back
   </div>
 
+  <!-- pako for compressing diffs into shareable URL hashes -->
+  <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
   <!-- Core: Diff2Html.parse() / .html() for stats + file tree parsing -->
   <script src="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/js/diff2html.min.js"></script>
   <!-- UI slim: Diff2HtmlUI with hljs, synchronized scroll, collapsible files -->

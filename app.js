@@ -449,6 +449,7 @@
     const parsed = Diff2Html.parse(renderRaw);
     buildStats(parsed);
     buildSidebarTree(parsed);
+    updateShareUrl(raw);
 
     // Show sidebar for multi-file diffs (respect saved pref on first load)
     if (parsed.length <= 1) {
@@ -618,10 +619,58 @@
     diffContainer.innerHTML = "";
     sidebarTree.innerHTML = "";
     diffStats.innerHTML = "";
+    history.replaceState(null, "", location.pathname);
   }
 
   btnBack.addEventListener("click", goHome);
   $("#logo").addEventListener("click", goHome);
+
+  // ═══════════════════════════════════════════════════════════
+  // Shareable URL (pako compress → base64url → hash)
+  // ═══════════════════════════════════════════════════════════
+  const shareInput = $("#shareInput");
+  const btnCopyUrl = $("#btnCopyUrl");
+
+  function encodeToHash(raw) {
+    try {
+      const compressed = pako.deflateRaw(new TextEncoder().encode(raw));
+      let b64 = btoa(String.fromCharCode.apply(null, compressed));
+      // base64 → base64url
+      b64 = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      return b64;
+    } catch { return ""; }
+  }
+
+  function decodeFromHash(hash) {
+    try {
+      let b64 = hash.replace(/-/g, "+").replace(/_/g, "/");
+      // re-pad
+      while (b64.length % 4) b64 += "=";
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder().decode(pako.inflateRaw(bytes));
+    } catch { return ""; }
+  }
+
+  function updateShareUrl(raw) {
+    const hash = encodeToHash(raw);
+    if (hash) {
+      const url = location.origin + location.pathname + "#" + hash;
+      history.replaceState(null, "", "#" + hash);
+      shareInput.value = url;
+    } else {
+      shareInput.value = location.href;
+    }
+  }
+
+  btnCopyUrl.addEventListener("click", () => {
+    navigator.clipboard.writeText(shareInput.value).then(() => {
+      const orig = btnCopyUrl.textContent;
+      btnCopyUrl.textContent = "Copied!";
+      setTimeout(() => { btnCopyUrl.textContent = orig; }, 1500);
+    });
+  });
 
   // ═══════════════════════════════════════════════════════════
   // File upload
@@ -795,5 +844,15 @@ index 9f8e7d6..3c2b1a0 100644
     // Restore sidebar state
     btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
     sidebar.classList.toggle("collapsed", !sidebarVisible);
+
+    // Load diff from URL hash if present
+    const hash = location.hash.slice(1);
+    if (hash) {
+      const decoded = decodeFromHash(hash);
+      if (decoded) {
+        diffInput.value = decoded;
+        renderDiff(decoded);
+      }
+    }
   })();
 })();
