@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DiffyViewer</title>
-  <!-- highlight.js dark theme MUST load before diff2html css -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
+  <!-- highlight.js theme MUST load before diff2html css — swapped dynamically by JS -->
+  <link id="hljsTheme" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/github-dark.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -16,6 +16,7 @@
       <span class="tagline">Browser-based diff viewer</span>
     </div>
     <div class="header-right">
+      <select id="themeSelect" class="theme-select" title="Color theme"></select>
       <div class="view-toggle" id="viewToggle">
         <button class="toggle-btn active" data-mode="split">Split</button>
         <button class="toggle-btn" data-mode="unified">Unified</button>

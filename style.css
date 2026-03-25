@@ -79,6 +79,28 @@ header h1 {
   font-size: 13px;
 }
 
+/* ── Theme select ── */
+.theme-select {
+  padding: 5px 10px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+}
+
+.theme-select:hover,
+.theme-select:focus {
+  border-color: var(--accent);
+}
+
+.theme-select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
 /* ── View toggle ── */
 .view-toggle {
   display: flex;
