@@ -679,11 +679,33 @@
     if (!diffContainer.innerHTML) return;
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
     const hljsName = t.type === "dark" ? "github-dark" : "github";
+    var tutorialCss = "";
+    if (tutorialActive) {
+      tutorialCss =
+        '.tutorial-view{max-width:900px}\n' +
+        '.tutorial-file{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
+        '.tutorial-file-header{background:' + t.surface + ';padding:10px 14px;font-family:monospace;font-size:13px;font-weight:600;border-bottom:1px solid ' + t.border + '}\n' +
+        '.tutorial-file-path{color:' + t.accent + '}\n' +
+        '.tutorial-action-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 6px;border-radius:3px;vertical-align:middle}\n' +
+        '.tutorial-badge-new{background:' + t.green + ';color:#000}\n' +
+        '.tutorial-badge-delete{background:' + t.red + ';color:#fff}\n' +
+        '.tutorial-step{padding:12px 14px;border-bottom:1px solid ' + t.border + '}\n' +
+        '.tutorial-step:last-child{border-bottom:none}\n' +
+        '.tutorial-step+.tutorial-step{margin-top:4px;border-top:1px dashed ' + t.border + '}\n' +
+        '.tutorial-instruction{font-size:13px;font-weight:600;margin-bottom:6px;color:' + t.textMuted + '}\n' +
+        '.tutorial-instruction-find{color:' + (t.yellow || t.textMuted) + '}\n' +
+        '.tutorial-instruction-replace{color:' + t.accent + ';margin-top:10px}\n' +
+        '.tutorial-instruction-add{color:' + t.green + ';margin-top:10px}\n' +
+        '.tutorial-instruction-remove{color:' + t.red + '}\n' +
+        '.tutorial-code-wrap{position:relative}\n' +
+        '.tutorial-code{background:' + t.bg + ';border:1px solid ' + t.border + ';border-radius:4px;padding:10px 12px;font-family:monospace;font-size:12px;line-height:1.5;overflow-x:auto;white-space:pre;margin:0}\n' +
+        '.tutorial-copy{display:none}\n';
+    }
     const html = '<!DOCTYPE html>\n<html lang="en"><head>\n' +
       '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n' +
       '<title>DiffyViewer Export</title>\n' +
-      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/' + hljsName + '.min.css">\n' +
-      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css">\n' +
+      (tutorialActive ? '' : '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/' + hljsName + '.min.css">\n' +
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css">\n') +
       '<style>\n' +
       'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;' +
       'background:' + t.bg + ';color:' + t.text + ';padding:24px;margin:0}\n' +
@@ -691,6 +713,7 @@
       '.d2h-file-wrapper{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:16px;overflow:hidden}\n' +
       '.d2h-file-header{background:' + t.bg + '}\n' +
       '.d2h-file-list-wrapper{display:none}\n' +
+      tutorialCss +
       '</style>\n' +
       '</head><body>\n' +
       diffContainer.innerHTML +

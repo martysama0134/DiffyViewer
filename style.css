@@ -616,6 +616,10 @@ main {
   border-bottom: none;
 }
 
+.tutorial-step + .tutorial-step {
+  border-top: 1px dashed var(--border);
+}
+
 .tutorial-instruction {
   font-size: 13px;
   font-weight: 600;
