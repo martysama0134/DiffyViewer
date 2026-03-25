@@ -445,61 +445,6 @@ main {
   min-width: 0;
 }
 
-/* ── Line wrap mode ──
-   Root cause: d2h-code-line-ctn is inline-block with width:100% inside
-   an inline-block parent with white-space:nowrap. This creates an infinite
-   size loop — 100% of a content-sized parent = content width = no wrap.
-   Fix: flex layout on line container + width:auto on content span.
-*/
-
-/* 1. Containers: kill horizontal scroll at every level */
-.diff-container.line-wrap {
-  overflow-x: hidden !important;
-}
-
-.line-wrap .d2h-wrapper,
-.line-wrap .d2h-file-wrapper,
-.line-wrap .d2h-file-diff,
-.line-wrap .d2h-files-diff,
-.line-wrap .d2h-file-side-diff,
-.line-wrap .d2h-code-wrapper {
-  overflow-x: hidden !important;
-}
-
-/* 2. Table: fixed layout so column widths come from header, not content */
-.line-wrap .d2h-diff-table {
-  table-layout: fixed !important;
-  width: 100% !important;
-}
-
-/* 3. Code line containers: flex layout so prefix + content share space */
-.line-wrap .d2h-code-line,
-.line-wrap .d2h-code-side-line {
-  display: flex !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  white-space: normal !important;
-}
-
-/* 4. Prefix (+/-/space): fixed size, no shrink */
-.line-wrap .d2h-code-line-prefix {
-  flex: 0 0 auto !important;
-  white-space: pre !important;
-}
-
-/* 5. Code content: CRITICAL — width:auto removes the 100% that caused
-      infinite overflow; flex:1 + min-width:0 allows shrinking below content */
-.line-wrap .d2h-code-line-ctn {
-  display: block !important;
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  width: auto !important;
-  max-width: 100% !important;
-  white-space: pre-wrap !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-word !important;
-}
-
 /* ── Shortcut hint toast ── */
 .shortcut-hint {
   position: fixed;

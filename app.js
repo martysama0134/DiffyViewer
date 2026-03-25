@@ -179,7 +179,7 @@
   // Preferences (localStorage)
   // ═══════════════════════════════════════════════════════════
   const PREF_KEY = "diffyviewer-prefs";
-  const DEFAULTS = { theme: "github-dark", viewMode: "side-by-side", wrap: false, sidebar: true };
+  const DEFAULTS = { theme: "github-dark", viewMode: "side-by-side", sidebar: true, hideWhitespace: false };
 
   function loadPrefs() {
     try {
@@ -191,8 +191,8 @@
     localStorage.setItem(PREF_KEY, JSON.stringify({
       theme: currentThemeName,
       viewMode: currentMode,
-      wrap: wrapEnabled,
       sidebar: sidebarVisible,
+      hideWhitespace: hideWhitespace,
     }));
   }
 
@@ -211,9 +211,10 @@
   const btnBack = $("#btnBack");
   const btnSample = $("#btnSample");
   const btnDownload = $("#btnDownload");
+  const btnDownloadHtml = $("#btnDownloadHtml");
   const btnCollapseAll = $("#btnCollapseAll");
   const btnToggleSidebar = $("#btnToggleSidebar");
-  const btnToggleWrap = $("#btnToggleWrap");
+  const btnHideWhitespace = $("#btnHideWhitespace");
   const fileUpload = $("#fileUpload");
   const viewToggle = $("#viewToggle");
   const themeSelect = $("#themeSelect");
@@ -226,8 +227,8 @@
   const prefs = loadPrefs();
   let currentThemeName = prefs.theme;
   let currentMode = prefs.viewMode;
-  let wrapEnabled = prefs.wrap;
   let sidebarVisible = prefs.sidebar;
+  let hideWhitespace = prefs.hideWhitespace;
   let currentRaw = "";
   let collapsed = false;
 
@@ -335,59 +336,58 @@
   themeSelect.addEventListener("change", () => applyTheme(themeSelect.value));
 
   // ═══════════════════════════════════════════════════════════
-  // Word wrap — JS inline styles (guaranteed override)
+  // Hide whitespace — filters whitespace-only changes at parse time
   // ═══════════════════════════════════════════════════════════
-  function applyWrapInlineStyles(enable) {
-    if (enable) {
-      // Containers: kill horizontal scroll
-      diffContainer.querySelectorAll(".d2h-file-side-diff, .d2h-code-wrapper, .d2h-file-diff, .d2h-files-diff").forEach((el) => {
-        el.style.setProperty("overflow-x", "hidden", "important");
-      });
-      // Tables: fixed layout so columns don't expand to content
-      diffContainer.querySelectorAll(".d2h-diff-table").forEach((el) => {
-        el.style.setProperty("table-layout", "fixed", "important");
-        el.style.setProperty("width", "100%", "important");
-      });
-      // Line containers: flex so prefix + content share space properly
-      diffContainer.querySelectorAll(".d2h-code-line, .d2h-code-side-line").forEach((el) => {
-        el.style.setProperty("display", "flex", "important");
-        el.style.setProperty("width", "100%", "important");
-        el.style.setProperty("min-width", "0", "important");
-        el.style.setProperty("white-space", "normal", "important");
-      });
-      // Prefix (+/-/space): fixed, no shrink
-      diffContainer.querySelectorAll(".d2h-code-line-prefix").forEach((el) => {
-        el.style.setProperty("flex", "0 0 auto", "important");
-        el.style.setProperty("white-space", "pre", "important");
-      });
-      // Code content: CRITICAL — width:auto removes the width:100% that
-      // caused infinite overflow (100% of inline-block parent = content size)
-      diffContainer.querySelectorAll(".d2h-code-line-ctn").forEach((el) => {
-        el.style.setProperty("display", "block", "important");
-        el.style.setProperty("flex", "1 1 auto", "important");
-        el.style.setProperty("min-width", "0", "important");
-        el.style.setProperty("width", "auto", "important");
-        el.style.setProperty("max-width", "100%", "important");
-        el.style.setProperty("white-space", "pre-wrap", "important");
-        el.style.setProperty("overflow-wrap", "anywhere", "important");
-        el.style.setProperty("word-break", "break-word", "important");
-      });
-    } else {
-      const props = ["table-layout", "width", "min-width", "max-width", "display",
-        "flex", "white-space", "word-wrap", "word-break", "overflow-wrap", "overflow-x"];
-      diffContainer.querySelectorAll(".d2h-diff-table, .d2h-code-line, .d2h-code-side-line, .d2h-code-line-ctn, .d2h-code-line-prefix, .d2h-file-side-diff, .d2h-code-wrapper, .d2h-file-diff, .d2h-files-diff").forEach((el) => {
-        props.forEach((p) => el.style.removeProperty(p));
-      });
+  function filterWhitespace(raw) {
+    // Split into per-file diffs, drop hunks where all changes are whitespace-only
+    const lines = raw.split("\n");
+    const out = [];
+    let inHunk = false;
+    let hunkLines = [];
+    let hunkHeader = "";
+    let hasNonWsChange = false;
+
+    function flushHunk() {
+      if (hunkHeader && hasNonWsChange) {
+        out.push(hunkHeader);
+        hunkLines.forEach((l) => out.push(l));
+      }
+      hunkLines = [];
+      hunkHeader = "";
+      hasNonWsChange = false;
     }
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line.startsWith("@@")) {
+        flushHunk();
+        hunkHeader = line;
+        inHunk = true;
+      } else if (inHunk && (line.startsWith("+") || line.startsWith("-"))) {
+        hunkLines.push(line);
+        // Check if the change is non-whitespace
+        const content = line.substring(1);
+        if (content.trim().length > 0) {
+          hasNonWsChange = true;
+        }
+      } else if (inHunk && line.startsWith(" ")) {
+        hunkLines.push(line);
+      } else {
+        flushHunk();
+        inHunk = false;
+        out.push(line);
+      }
+    }
+    flushHunk();
+    return out.join("\n");
   }
 
-  function toggleWrap(enable) {
-    wrapEnabled = enable;
-    diffContainer.classList.toggle("line-wrap", wrapEnabled);
-    btnToggleWrap.classList.toggle("btn-active", wrapEnabled);
-    applyWrapInlineStyles(wrapEnabled);
+  btnHideWhitespace.addEventListener("click", () => {
+    hideWhitespace = !hideWhitespace;
+    btnHideWhitespace.classList.toggle("btn-active", hideWhitespace);
     savePrefs();
-  }
+    if (currentRaw) renderDiff(currentRaw);
+  });
 
   // ═══════════════════════════════════════════════════════════
   // View toggle
@@ -411,11 +411,6 @@
     btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
     savePrefs();
   });
-
-  // ═══════════════════════════════════════════════════════════
-  // Wrap toggle
-  // ═══════════════════════════════════════════════════════════
-  btnToggleWrap.addEventListener("click", () => toggleWrap(!wrapEnabled));
 
   // ═══════════════════════════════════════════════════════════
   // Render diff
@@ -444,16 +439,14 @@
       },
     };
 
+    const renderRaw = hideWhitespace ? filterWhitespace(raw) : raw;
+
     diffContainer.innerHTML = "";
-    const ui = new Diff2HtmlUI(diffContainer, raw, config);
+    const ui = new Diff2HtmlUI(diffContainer, renderRaw, config);
     ui.draw();
     ui.highlightCode();
 
-    // Apply wrap inline styles if enabled
-    diffContainer.classList.toggle("line-wrap", wrapEnabled);
-    if (wrapEnabled) applyWrapInlineStyles(true);
-
-    const parsed = Diff2Html.parse(raw);
+    const parsed = Diff2Html.parse(renderRaw);
     buildStats(parsed);
     buildSidebarTree(parsed);
 
@@ -583,6 +576,34 @@
     URL.revokeObjectURL(url);
   });
 
+  // Download as self-contained HTML
+  btnDownloadHtml.addEventListener("click", () => {
+    if (!diffContainer.innerHTML) return;
+    const t = THEMES[currentThemeName] || THEMES["github-dark"];
+    const hljsName = t.type === "dark" ? "github-dark" : "github";
+    const html = '<!DOCTYPE html>\n<html lang="en"><head>\n' +
+      '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n' +
+      '<title>DiffyViewer Export</title>\n' +
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/' + hljsName + '.min.css">\n' +
+      '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/diff2html@3.4.56/bundles/css/diff2html.min.css">\n' +
+      '<style>\n' +
+      'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;' +
+      'background:' + t.bg + ';color:' + t.text + ';padding:24px;margin:0}\n' +
+      '.d2h-wrapper{background:transparent}\n' +
+      '.d2h-file-wrapper{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:16px;overflow:hidden}\n' +
+      '.d2h-file-header{background:' + t.bg + '}\n' +
+      '.d2h-file-list-wrapper{display:none}\n' +
+      '</style>\n' +
+      '</head><body>\n' +
+      diffContainer.innerHTML +
+      '\n</body></html>';
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "diff.html"; a.click();
+    URL.revokeObjectURL(url);
+  });
+
   // ═══════════════════════════════════════════════════════════
   // Back / Submit
   // ═══════════════════════════════════════════════════════════
@@ -642,7 +663,7 @@
     if (outputPanel.classList.contains("hidden")) return;
 
     if (e.key === "b") { e.preventDefault(); btnToggleSidebar.click(); return; }
-    if (e.key === "w") { e.preventDefault(); btnToggleWrap.click(); return; }
+    if (e.key === "w") { e.preventDefault(); btnHideWhitespace.click(); return; }
 
     const wrappers = [...diffContainer.querySelectorAll(".d2h-file-wrapper")];
     if (wrappers.length <= 1) return;
@@ -765,8 +786,8 @@ index 9f8e7d6..3c2b1a0 100644
       modeBtn.classList.add("active");
     }
 
-    // Restore wrap button state
-    btnToggleWrap.classList.toggle("btn-active", wrapEnabled);
+    // Restore hide-whitespace button state
+    btnHideWhitespace.classList.toggle("btn-active", hideWhitespace);
 
     // Restore sidebar state
     btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
