@@ -210,7 +210,6 @@
   const sidebarBackdrop = $("#sidebarBackdrop");
   const sidebarTree = $("#sidebarTree");
   const btnDiff = $("#btnDiff");
-  const btnBack = $("#btnBack");
   const btnSample = $("#btnSample");
   const btnDownload = $("#btnDownload");
   const btnDownloadHtml = $("#btnDownloadHtml");
@@ -670,8 +669,11 @@
     const blob = new Blob([currentRaw], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "changes.patch"; a.click();
-    URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = "changes.patch";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
   });
 
   // Download as self-contained HTML
@@ -739,8 +741,11 @@
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "diff.html"; a.click();
-    URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = "diff.html";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -1009,7 +1014,6 @@
     history.replaceState(null, "", location.pathname);
   }
 
-  btnBack.addEventListener("click", goHome);
   $("#logo").addEventListener("click", goHome);
 
   // ═══════════════════════════════════════════════════════════
@@ -1093,7 +1097,7 @@
   // ═══════════════════════════════════════════════════════════
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !outputPanel.classList.contains("hidden")) {
-      e.preventDefault(); btnBack.click(); return;
+      e.preventDefault(); goHome(); return;
     }
     if (e.target === diffInput) {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); btnDiff.click(); }
