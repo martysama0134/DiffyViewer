@@ -424,19 +424,25 @@ main {
 }
 
 /* ── Line wrap mode ──
-   Every layer in the diff2html DOM must be constrained:
-   .diff-container > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff
-     > .d2h-code-wrapper > table.d2h-diff-table > tr > td > div.d2h-code-line
-       > span.d2h-code-line-ctn
-   Side-by-side adds: .d2h-file-side-diff between file-diff and code-wrapper
+   diff2html DOM chain:
+     .diff-container > .d2h-wrapper > .d2h-file-wrapper > .d2h-file-diff
+       > [.d2h-files-diff > .d2h-file-side-diff] > .d2h-code-wrapper
+       > table.d2h-diff-table > tr > td > div.d2h-code-line (inline-block, nowrap)
+         > span.d2h-code-line-ctn (inline-block, pre, word-wrap:normal, width:100%)
+
+   Key problems in default CSS:
+     - .d2h-code-line is display:inline-block — expands to content width
+     - .d2h-code-line-ctn has word-wrap:normal explicitly
+     - .d2h-file-side-diff has overflow-x:scroll
+     - No table-layout is set, so table auto-sizes to content
 */
 
-/* Container: no horizontal scroll */
+/* 1. Container: kill horizontal scroll */
 .diff-container.line-wrap {
   overflow-x: hidden !important;
 }
 
-/* Wrappers: contain overflow */
+/* 2. Every wrapper in the chain: contain overflow */
 .line-wrap .d2h-wrapper,
 .line-wrap .d2h-file-wrapper,
 .line-wrap .d2h-file-diff,
@@ -444,23 +450,36 @@ main {
 .line-wrap .d2h-file-side-diff,
 .line-wrap .d2h-code-wrapper {
   overflow-x: hidden !important;
-  max-width: 100% !important;
 }
 
-/* Table: fixed layout so columns respect container width */
+/* 3. Table: fixed layout so column widths come from first row, not content */
 .line-wrap .d2h-diff-table {
   table-layout: fixed !important;
   width: 100% !important;
-  min-width: 0 !important;
 }
 
-/* All code content: wrap instead of horizontal scroll */
+/* 4. Code line divs: switch from inline-block to block so they fill
+      the td width instead of expanding to content size */
 .line-wrap .d2h-code-line,
-.line-wrap .d2h-code-side-line,
+.line-wrap .d2h-code-side-line {
+  display: block !important;
+  width: auto !important;
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* 5. Code content spans: force wrapping (diff2html sets word-wrap:normal) */
 .line-wrap .d2h-code-line-ctn {
   white-space: pre-wrap !important;
+  word-wrap: break-word !important;
   overflow-wrap: anywhere !important;
-  word-break: break-all !important;
+}
+
+/* 6. Prefix (+/-/space) should also wrap if somehow long */
+.line-wrap .d2h-code-line-prefix {
+  white-space: pre-wrap !important;
+  word-wrap: break-word !important;
 }
 
 /* ── Shortcut hint toast ── */
