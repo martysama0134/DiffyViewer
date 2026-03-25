@@ -276,49 +276,162 @@ main {
   color: var(--red);
 }
 
-/* ── File tree pills ── */
-.file-tree {
+/* ── Output body (sidebar + diff) ── */
+.output-body {
+  flex: 1;
   display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  align-items: center;
+  min-height: 0;
 }
 
-.file-tree .file-pill {
-  display: inline-flex;
+/* ── Sidebar ── */
+.sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s, min-width 0.2s, opacity 0.2s;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  border-right: none;
+  pointer-events: none;
+}
+
+.sidebar-header {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+/* Tree items */
+.tree-dir,
+.tree-file {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tree-dir > .tree-label {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 3px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+  gap: 5px;
+}
+
+.tree-dir > .tree-label:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tree-dir > .tree-label .tree-arrow {
+  font-size: 10px;
+  width: 12px;
+  text-align: center;
+  transition: transform 0.15s;
+  flex-shrink: 0;
+}
+
+.tree-dir.closed > .tree-label .tree-arrow {
+  transform: rotate(-90deg);
+}
+
+.tree-dir.closed > .tree-children {
+  display: none;
+}
+
+.tree-dir > .tree-label .tree-dirname {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.tree-children {
+  /* indent via padding-left on children */
+}
+
+.tree-file {
   padding: 3px 10px;
   font-size: 12px;
   font-family: "SFMono-Regular", Consolas, monospace;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 20px;
   color: var(--text-muted);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  gap: 6px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.file-tree .file-pill:hover,
-.file-tree .file-pill.active {
+.tree-file:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.tree-file.active {
+  color: var(--accent);
+  background: rgba(88, 166, 255, 0.08);
+}
+
+.tree-file .tree-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tree-file .tree-stats {
+  margin-left: auto;
+  font-size: 10px;
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+}
+
+.tree-stats .ts-add { color: var(--green); }
+.tree-stats .ts-del { color: var(--red); }
+
+/* Active toggle button state */
+.btn.btn-active {
   border-color: var(--accent);
   color: var(--accent);
 }
-
-.file-pill .pill-stats {
-  font-size: 10px;
-  opacity: 0.7;
-}
-
-.file-pill .pill-add { color: var(--green); }
-.file-pill .pill-del { color: var(--red); }
 
 /* ── Diff container ── */
 .diff-container {
   flex: 1;
   padding: 16px 24px;
   overflow: auto;
+  min-width: 0;
+}
+
+/* ── Line wrap mode ── */
+.line-wrap .d2h-code-line-ctn,
+.line-wrap .d2h-code-side-line {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+
+.line-wrap .d2h-code-line {
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+}
+
+.line-wrap .d2h-file-side-diff {
+  overflow-x: hidden;
 }
 
 /* ── Shortcut hint toast ── */
@@ -435,6 +548,20 @@ body.drag-over::after {
   .toolbar-right {
     width: 100%;
     justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 49px;
+    left: 0;
+    bottom: 0;
+    z-index: 8;
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .sidebar.collapsed {
+    box-shadow: none;
   }
 
   .diff-container {

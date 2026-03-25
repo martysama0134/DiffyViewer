@@ -7,12 +7,15 @@
   const diffInput = $("#diffInput");
   const diffContainer = $("#diffContainer");
   const diffStats = $("#diffStats");
-  const fileTree = $("#fileTree");
+  const sidebar = $("#sidebar");
+  const sidebarTree = $("#sidebarTree");
   const btnDiff = $("#btnDiff");
   const btnBack = $("#btnBack");
   const btnSample = $("#btnSample");
   const btnDownload = $("#btnDownload");
   const btnCollapseAll = $("#btnCollapseAll");
+  const btnToggleSidebar = $("#btnToggleSidebar");
+  const btnToggleWrap = $("#btnToggleWrap");
   const fileUpload = $("#fileUpload");
   const viewToggle = $("#viewToggle");
   const shortcutHint = $("#shortcutHint");
@@ -20,6 +23,8 @@
   let currentMode = "side-by-side";
   let currentRaw = "";
   let collapsed = false;
+  let wrapEnabled = false;
+  let sidebarVisible = true;
 
   // ── View toggle ──
   viewToggle.addEventListener("click", (e) => {
@@ -29,6 +34,20 @@
     btn.classList.add("active");
     currentMode = btn.dataset.mode === "unified" ? "line-by-line" : "side-by-side";
     if (currentRaw) renderDiff(currentRaw);
+  });
+
+  // ── Sidebar toggle ──
+  btnToggleSidebar.addEventListener("click", () => {
+    sidebarVisible = !sidebarVisible;
+    sidebar.classList.toggle("collapsed", !sidebarVisible);
+    btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
+  });
+
+  // ── Line wrap toggle ──
+  btnToggleWrap.addEventListener("click", () => {
+    wrapEnabled = !wrapEnabled;
+    diffContainer.classList.toggle("line-wrap", wrapEnabled);
+    btnToggleWrap.classList.toggle("btn-active", wrapEnabled);
   });
 
   // ── Render using Diff2HtmlUI ──
@@ -59,16 +78,25 @@
     ui.draw();
     ui.highlightCode();
 
-    buildStats(raw);
-    buildFileTree(raw);
+    // Re-apply wrap if it was on
+    diffContainer.classList.toggle("line-wrap", wrapEnabled);
+
+    const parsed = Diff2Html.parse(raw);
+    buildStats(parsed);
+    buildSidebarTree(parsed);
+
+    // Show sidebar by default if multiple files
+    sidebarVisible = parsed.length > 1;
+    sidebar.classList.toggle("collapsed", !sidebarVisible);
+    btnToggleSidebar.classList.toggle("btn-active", sidebarVisible);
+
     inputPanel.classList.add("hidden");
     outputPanel.classList.remove("hidden");
-    showShortcutHint();
+    showShortcutHint(parsed.length);
   }
 
   // ── Diff stats summary ──
-  function buildStats(raw) {
-    const parsed = Diff2Html.parse(raw);
+  function buildStats(parsed) {
     let totalAdd = 0;
     let totalDel = 0;
     parsed.forEach((f) => {
@@ -82,49 +110,111 @@
       '<span class="stat-del">-' + totalDel + "</span>";
   }
 
-  // ── File tree pills with per-file stats ──
-  function buildFileTree(raw) {
-    const parsed = Diff2Html.parse(raw);
-    fileTree.innerHTML = "";
-    if (parsed.length <= 1) return;
+  // ── Build hierarchical sidebar tree ──
+  function buildSidebarTree(parsed) {
+    // Build a nested tree structure from flat file paths
+    const root = { children: {}, files: [] };
 
-    parsed.forEach((file, i) => {
-      const pill = document.createElement("button");
-      pill.className = "file-pill";
+    parsed.forEach((file, idx) => {
+      const filePath = file.newName || file.oldName || "(unknown)";
+      const parts = filePath.split("/");
+      let node = root;
 
-      const name = document.createElement("span");
-      name.textContent = shortName(file.newName || file.oldName);
-      pill.appendChild(name);
-
-      if (file.addedLines || file.deletedLines) {
-        const stats = document.createElement("span");
-        stats.className = "pill-stats";
-        const parts = [];
-        if (file.addedLines) parts.push('<span class="pill-add">+' + file.addedLines + "</span>");
-        if (file.deletedLines) parts.push('<span class="pill-del">-' + file.deletedLines + "</span>");
-        stats.innerHTML = parts.join(" ");
-        pill.appendChild(stats);
+      for (let i = 0; i < parts.length - 1; i++) {
+        const dir = parts[i];
+        if (!node.children[dir]) {
+          node.children[dir] = { children: {}, files: [] };
+        }
+        node = node.children[dir];
       }
 
-      pill.title = file.newName || file.oldName;
-      pill.addEventListener("click", () => scrollToFile(i));
-      fileTree.appendChild(pill);
+      node.files.push({
+        name: parts[parts.length - 1],
+        fullPath: filePath,
+        idx: idx,
+        added: file.addedLines,
+        deleted: file.deletedLines,
+      });
+    });
+
+    sidebarTree.innerHTML = "";
+    renderTreeNode(root, sidebarTree, 0);
+  }
+
+  function renderTreeNode(node, container, depth) {
+    // Sort: directories first, then files
+    const dirNames = Object.keys(node.children).sort();
+    const files = node.files;
+
+    dirNames.forEach((dirName) => {
+      const dirEl = document.createElement("div");
+      dirEl.className = "tree-dir";
+
+      const label = document.createElement("div");
+      label.className = "tree-label";
+      label.style.paddingLeft = (12 + depth * 16) + "px";
+      label.innerHTML =
+        '<span class="tree-arrow">&#9662;</span>' +
+        '<span class="tree-dirname">' + esc(dirName) + "/</span>";
+      label.addEventListener("click", () => dirEl.classList.toggle("closed"));
+
+      const childContainer = document.createElement("div");
+      childContainer.className = "tree-children";
+
+      dirEl.appendChild(label);
+      dirEl.appendChild(childContainer);
+      container.appendChild(dirEl);
+
+      renderTreeNode(node.children[dirName], childContainer, depth + 1);
+    });
+
+    files.forEach((file) => {
+      const fileEl = document.createElement("div");
+      fileEl.className = "tree-file";
+      fileEl.style.paddingLeft = (12 + depth * 16 + 17) + "px";
+      fileEl.title = file.fullPath;
+      fileEl.dataset.idx = file.idx;
+
+      let statsHtml = "";
+      if (file.added || file.deleted) {
+        const parts = [];
+        if (file.added) parts.push('<span class="ts-add">+' + file.added + "</span>");
+        if (file.deleted) parts.push('<span class="ts-del">-' + file.deleted + "</span>");
+        statsHtml = '<span class="tree-stats">' + parts.join("") + "</span>";
+      }
+
+      fileEl.innerHTML =
+        '<span class="tree-filename">' + esc(file.name) + "</span>" + statsHtml;
+
+      fileEl.addEventListener("click", () => {
+        scrollToFile(file.idx);
+        highlightTreeFile(file.idx);
+      });
+
+      container.appendChild(fileEl);
     });
   }
 
+  function highlightTreeFile(idx) {
+    sidebarTree.querySelectorAll(".tree-file").forEach((f) => f.classList.remove("active"));
+    const target = sidebarTree.querySelector('.tree-file[data-idx="' + idx + '"]');
+    if (target) target.classList.add("active");
+  }
+
+  function esc(str) {
+    const d = document.createElement("div");
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  // ── Scroll to file ──
   function scrollToFile(idx) {
     const wrappers = diffContainer.querySelectorAll(".d2h-file-wrapper");
     if (!wrappers[idx]) return;
     const headerHeight = 49;
-    const y = wrappers[idx].getBoundingClientRect().top + window.scrollY - headerHeight - 8;
+    const toolbarHeight = 41;
+    const y = wrappers[idx].getBoundingClientRect().top + window.scrollY - headerHeight - toolbarHeight - 8;
     window.scrollTo({ top: y, behavior: "smooth" });
-    highlightPill(idx);
-  }
-
-  function highlightPill(idx) {
-    const pills = fileTree.querySelectorAll(".file-pill");
-    pills.forEach((p) => p.classList.remove("active"));
-    if (pills[idx]) pills[idx].classList.add("active");
   }
 
   function shortName(path) {
@@ -173,7 +263,7 @@
     outputPanel.classList.add("hidden");
     inputPanel.classList.remove("hidden");
     diffContainer.innerHTML = "";
-    fileTree.innerHTML = "";
+    sidebarTree.innerHTML = "";
     diffStats.innerHTML = "";
   });
 
@@ -224,14 +314,12 @@
 
   // ── Keyboard shortcuts ──
   document.addEventListener("keydown", (e) => {
-    // Escape: go back to input
     if (e.key === "Escape" && !outputPanel.classList.contains("hidden")) {
       e.preventDefault();
       btnBack.click();
       return;
     }
 
-    // Don't capture when typing in textarea
     if (e.target === diffInput) {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
@@ -241,33 +329,48 @@
     }
 
     if (outputPanel.classList.contains("hidden")) return;
+
+    // Toggle sidebar with 'b'
+    if (e.key === "b") {
+      e.preventDefault();
+      btnToggleSidebar.click();
+      return;
+    }
+
+    // Toggle wrap with 'w'
+    if (e.key === "w") {
+      e.preventDefault();
+      btnToggleWrap.click();
+      return;
+    }
+
     const wrappers = [...diffContainer.querySelectorAll(".d2h-file-wrapper")];
     if (wrappers.length <= 1) return;
 
     if (e.key === "j" || e.key === "k") {
       e.preventDefault();
-      const headerHeight = 49;
+      const headerHeight = 90;
       let currentIdx = 0;
       for (let i = 0; i < wrappers.length; i++) {
-        if (wrappers[i].getBoundingClientRect().top <= headerHeight + 10) currentIdx = i;
+        if (wrappers[i].getBoundingClientRect().top <= headerHeight) currentIdx = i;
       }
       const next = e.key === "j"
         ? Math.min(currentIdx + 1, wrappers.length - 1)
         : Math.max(currentIdx - 1, 0);
       scrollToFile(next);
+      highlightTreeFile(next);
     }
   });
 
   // ── Shortcut hint toast ──
-  function showShortcutHint() {
-    const wrappers = diffContainer.querySelectorAll(".d2h-file-wrapper");
-    if (wrappers.length <= 1) return;
+  function showShortcutHint(fileCount) {
+    if (fileCount <= 1) return;
     shortcutHint.classList.remove("hidden", "fade-out");
     setTimeout(() => shortcutHint.classList.add("fade-out"), 3000);
     setTimeout(() => shortcutHint.classList.add("hidden"), 3400);
   }
 
-  // ── Sample diff (multi-file, renames, binary) ──
+  // ── Sample diff ──
   const SAMPLE = `diff --git a/src/utils/config.js b/src/utils/config.js
 index 8a3b5c1..f2d4e6a 100644
 --- a/src/utils/config.js

@@ -50,20 +50,32 @@
       <div class="output-toolbar">
         <div class="toolbar-left">
           <div id="diffStats" class="diff-stats"></div>
-          <div id="fileTree" class="file-tree"></div>
         </div>
         <div class="toolbar-right">
+          <button id="btnToggleSidebar" class="btn secondary btn-sm" title="Toggle file tree sidebar">Tree</button>
+          <button id="btnToggleWrap" class="btn secondary btn-sm" title="Toggle line wrapping">Wrap</button>
           <button id="btnCollapseAll" class="btn secondary btn-sm" title="Collapse / expand all files">Collapse All</button>
           <button id="btnDownload" class="btn secondary btn-sm" title="Download as .patch file">Download</button>
           <button id="btnBack" class="btn secondary btn-sm">New Diff</button>
         </div>
       </div>
-      <div id="diffContainer" class="diff-container"></div>
+      <div class="output-body">
+        <aside id="sidebar" class="sidebar">
+          <div class="sidebar-header">
+            <span>Files</span>
+          </div>
+          <div id="sidebarTree" class="sidebar-tree"></div>
+        </aside>
+        <div id="diffContainer" class="diff-container"></div>
+      </div>
     </section>
   </main>
 
   <div id="shortcutHint" class="shortcut-hint hidden">
-    <kbd>j</kbd>/<kbd>k</kbd> next/prev file &middot; <kbd>Esc</kbd> back
+    <kbd>j</kbd>/<kbd>k</kbd> next/prev file &middot;
+    <kbd>b</kbd> tree &middot;
+    <kbd>w</kbd> wrap &middot;
+    <kbd>Esc</kbd> back
   </div>
 
   <!-- Core: Diff2Html.parse() / .html() for stats + file tree parsing -->
