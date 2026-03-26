@@ -1,5 +1,23 @@
 # Changelog
 
+## v1.7.0
+
+### Features
+
+- Colored `+X` `-X` stats in the tutorial export file tree index
+
+### Improvements
+
+- SRI integrity hashes on all CDN scripts and diff2html CSS
+- Cache-busting on `app.js` (`app.js?v=3`)
+- Extracted shared `downloadBlob` and `exportTutorialAs` helpers, removing duplicated export code
+
+### Fixes
+
+- Fix `btoa` stack overflow on large diffs (chunked 8KB conversion)
+- Fix deleted files showing as `/dev/null` in sidebar tree, tutorial view, and text exports
+- Fix sidebar tree not scrolling to files when in tutorial mode
+
 ## v1.6.0
 
 ### Improvements
