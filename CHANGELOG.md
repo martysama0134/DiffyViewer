@@ -1,5 +1,16 @@
 # Changelog
 
+## v1.6.0
+
+### Improvements
+
+- Plain text export: consistent `===` heading bars above and below file names
+- Plain text export: added spacing between Find/Replace code blocks for readability
+- Plain text export: wider step separators for better visibility
+- Plain text export: replaced unicode box-drawing separator with pure ASCII
+- Plain text export: single closing separator at end of document instead of between each file
+- Updated README with tutorial view, export formats, and correct repo URL
+
 ## v1.5.0
 
 ### Features
