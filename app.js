@@ -949,6 +949,7 @@
       } else if (isDeleted) {
         out += bold("Delete this file.") + "\n\n";
       } else {
+        var steps = [];
         file.blocks.forEach(function (block) {
           var lines = block.lines;
           var i = 0;
@@ -971,26 +972,28 @@
               i++;
             }
 
+            var step = "";
             if (dels.length > 0 && adds.length > 0) {
               var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
               var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              out += label("Find:") + code(findText);
-              out += label("Replace with:") + code(replaceText) + "\n\n";
+              step = label("Find:") + code(findText) + label("Replace with:") + code(replaceText);
             } else if (adds.length > 0) {
               var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
               if (contextBefore.length > 0) {
                 var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
-                out += label("Find:") + code(anchorText);
-                out += label("Add below:") + code(addText) + "\n\n";
+                step = label("Find:") + code(anchorText) + label("Add below:") + code(addText);
               } else {
-                out += label("Add at the beginning of the section:") + code(addText) + "\n\n";
+                step = label("Add at the beginning of the section:") + code(addText);
               }
             } else if (dels.length > 0) {
               var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              out += label("Remove:") + code(removeText) + "\n\n";
+              step = label("Remove:") + code(removeText);
             }
+            if (step) steps.push(step);
           }
         });
+        var sep = isMd ? "\n---\n\n" : "\n[hr]\n\n";
+        out += steps.join(sep) + "\n";
       }
 
       if (idx < parsed.length - 1) out += hr();
