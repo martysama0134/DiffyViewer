@@ -704,22 +704,25 @@
     setTimeout(function () { btn.textContent = btn.dataset.origText; btn.style.color = ""; }, 2500);
   }
 
-  btnDownload.addEventListener("click", () => {
+  function downloadBlob(content, filename, mimeType) {
     if (isWebView) { webViewWarn(btnExport); return; }
-    if (!currentRaw) return;
-    const blob = new Blob([currentRaw], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    var blob = new Blob([content], { type: mimeType });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
     a.href = url;
-    a.download = "changes.patch";
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  }
+
+  btnDownload.addEventListener("click", () => {
+    if (!currentRaw) return;
+    downloadBlob(currentRaw, "changes.patch", "text/plain");
   });
 
   // Export as self-contained HTML
   btnDownloadHtml.addEventListener("click", () => {
-    if (isWebView) { webViewWarn(btnExport); return; }
     if (!diffContainer.innerHTML) return;
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
     const hljsName = t.type === "dark" ? "github-dark" : "github";
@@ -780,66 +783,20 @@
       '</head><body>\n' +
       exportContent +
       '\n' + exportScript + '</body></html>';
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "diff.html";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+    downloadBlob(html, "diff.html", "text/html");
   });
 
-  // Export tutorial as Markdown
-  btnExportMarkdown.addEventListener("click", function () {
-    if (isWebView) { webViewWarn(btnExport); return; }
+  // Export tutorial text formats
+  function exportTutorialAs(format, filename, mimeType) {
     if (!currentRaw || !tutorialActive) return;
     var parsed = Diff2Html.parse(currentRaw);
     var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
-    var md = generateTutorialText(filtered, currentRaw, "markdown");
-    var blob = new Blob([md], { type: "text/markdown" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "tutorial.md";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
-  });
+    downloadBlob(generateTutorialText(filtered, currentRaw, format), filename, mimeType);
+  }
 
-  // Export tutorial as BBCode
-  btnExportBBCode.addEventListener("click", function () {
-    if (isWebView) { webViewWarn(btnExport); return; }
-    if (!currentRaw || !tutorialActive) return;
-    var parsed = Diff2Html.parse(currentRaw);
-    var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
-    var bb = generateTutorialText(filtered, currentRaw, "bbcode");
-    var blob = new Blob([bb], { type: "text/plain" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "tutorial.txt";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
-  });
-
-  // Export tutorial as plain text
-  btnExportPlain.addEventListener("click", function () {
-    if (isWebView) { webViewWarn(btnExport); return; }
-    if (!currentRaw || !tutorialActive) return;
-    var parsed = Diff2Html.parse(currentRaw);
-    var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
-    var txt = generateTutorialText(filtered, currentRaw, "plain");
-    var blob = new Blob([txt], { type: "text/plain" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "tutorial.txt";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
-  });
+  btnExportMarkdown.addEventListener("click", function () { exportTutorialAs("markdown", "tutorial.md", "text/markdown"); });
+  btnExportBBCode.addEventListener("click", function () { exportTutorialAs("bbcode", "tutorial.txt", "text/plain"); });
+  btnExportPlain.addEventListener("click", function () { exportTutorialAs("plain", "tutorial.txt", "text/plain"); });
 
   // ═══════════════════════════════════════════════════════════
   // Tutorial view
