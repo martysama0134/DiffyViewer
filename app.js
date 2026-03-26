@@ -229,6 +229,7 @@
   const prefs = loadPrefs();
   let currentThemeName = prefs.theme;
   const isMobile = window.matchMedia("(max-width: 768px)").matches;
+  const isWebView = /Telegram|Instagram|FBAN|FBAV|Line\/|MicroMessenger/i.test(navigator.userAgent) || typeof window.TelegramWebviewProxy !== "undefined";
   let currentMode = isMobile ? "line-by-line" : prefs.viewMode;
   let sidebarVisible = isMobile ? false : prefs.sidebar;
   let hideWhitespace = prefs.hideWhitespace;
@@ -663,9 +664,22 @@
   });
 
   // ═══════════════════════════════════════════════════════════
-  // Download
+  // Download (with WebView detection)
   // ═══════════════════════════════════════════════════════════
+  if (isWebView) {
+    btnDownload.title = "Open in browser to download";
+    btnDownloadHtml.title = "Open in browser to export";
+  }
+
+  function webViewWarn(btn) {
+    var orig = btn.textContent;
+    btn.textContent = "Open in browser ↗";
+    btn.style.color = "var(--yellow)";
+    setTimeout(function () { btn.textContent = orig; btn.style.color = ""; }, 2500);
+  }
+
   btnDownload.addEventListener("click", () => {
+    if (isWebView) { webViewWarn(btnDownload); return; }
     if (!currentRaw) return;
     const blob = new Blob([currentRaw], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -677,8 +691,9 @@
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
   });
 
-  // Download as self-contained HTML
+  // Export as self-contained HTML
   btnDownloadHtml.addEventListener("click", () => {
+    if (isWebView) { webViewWarn(btnDownloadHtml); return; }
     if (!diffContainer.innerHTML) return;
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
     const hljsName = t.type === "dark" ? "github-dark" : "github";
