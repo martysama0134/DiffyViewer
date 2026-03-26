@@ -1,11 +1,12 @@
 # DiffyViewer
 
-Browser-based diff viewer. Paste or upload patches, view side-by-side or unified diffs with syntax highlighting. Runs entirely client-side on GitHub Pages.
+Browser-based diff viewer and tutorial generator. Paste or upload patches, view side-by-side or unified diffs with syntax highlighting, and convert diffs into human-readable find/replace tutorials. Runs entirely client-side on GitHub Pages.
 
 An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no server, no accounts, and no expiring links.
 
 ## Features
 
+### Diff Viewing
 - **Split & Unified views** -- toggle between side-by-side and inline diff layouts
 - **Syntax highlighting** -- powered by highlight.js via diff2html
 - **Character-level diffs** -- see exactly which characters changed within a line
@@ -14,12 +15,28 @@ An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no s
 - **Sidebar file tree** -- hierarchical directory tree with per-file +/- stats, collapsible directories
 - **Collapse/Expand All** -- toggle all file diffs at once
 - **Shareable URLs** -- diffs are compressed (pako deflate) and stored in the URL hash, no server needed
-- **Download Patch** -- save the raw diff as a `.patch` file
-- **Download HTML** -- export the rendered diff as a self-contained HTML file
+
+### Tutorial View
+- **Find/Replace instructions** -- converts diffs into step-by-step instructions (Find, Replace with, Add below, Remove)
+- **New/Deleted file handling** -- shows full content for new files, clear labels for deleted files
+- **Syntax highlighting** -- code blocks highlighted based on file extension
+- **Commit metadata** -- displays author, date, subject, and description when available (supports `git log -p` and `git format-patch` output)
+- **Per-block copy buttons** -- hover to reveal, click to copy individual code blocks
+
+### Export
+- **Patch** -- download the raw diff as a `.patch` file
+- **HTML** -- self-contained HTML with inline styles, file tree index, and copy buttons
+- **Markdown** -- fenced code blocks with horizontal rule separators between steps
+- **BBCode** -- `[code]`, `[b]`, `[size]`, `[hr]` tags for forum posting
+- **Plain Text** -- no markup, works anywhere (notepad, Discord, DMs)
+
+### General
 - **Drag & drop** -- drop `.diff` or `.patch` files anywhere on the page
 - **Keyboard shortcuts** -- `j`/`k` navigate files, `b` toggle tree, `w` toggle whitespace, `Esc` go home, `Ctrl+Enter` submit
 - **Persistent preferences** -- theme, view mode, sidebar, and whitespace settings saved in localStorage
 - **Sticky header** -- toolbar stays visible while scrolling through long diffs
+- **Mobile support** -- responsive layout, drawer sidebar with backdrop dismiss, unified view default
+- **WebView detection** -- warns users in Telegram, Instagram, etc. to open in browser for downloads
 
 ## Usage
 
@@ -32,12 +49,14 @@ Visit the deployed site, then either:
 3. **Drag & drop** a file onto the page
 4. **Open a shared URL** with the diff encoded in the hash
 
+To generate a tutorial, click **Tutorial** after viewing a diff, then use **Export** to download in your preferred format.
+
 ### Self-hosted
 
 Clone the repo and open `index.html` in a browser. No build step, no dependencies to install.
 
 ```
-git clone https://github.com/user/DiffyViewer.git
+git clone https://github.com/martysama0134/DiffyViewer.git
 cd DiffyViewer
 # open index.html in your browser
 ```
@@ -52,12 +71,16 @@ git diff | pbcopy        # Mac
 # Save to file
 git diff > changes.patch
 git diff HEAD~3 > last-3-commits.patch
+
+# With commit metadata (for tutorial view)
+git log -1 -p > commit.patch
+git format-patch -1 HEAD
 ```
 
 ## Tech Stack
 
 - [diff2html](https://github.com/rtfpessoa/diff2html) -- diff parsing and rendering
-- [highlight.js](https://highlightjs.org/) -- syntax highlighting (bundled with diff2html-ui-slim)
+- [highlight.js](https://highlightjs.org/) -- syntax highlighting
 - [pako](https://github.com/nodeca/pako) -- zlib compression for shareable URLs
 - Vanilla JS, no build tools, no frameworks
 
