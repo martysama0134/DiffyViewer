@@ -1016,7 +1016,7 @@
             if (step) steps.push(step);
           }
         });
-        var sep = isMd ? "\n---\n\n" : isBB ? "\n[hr]\n\n" : "\n- - -\n\n";
+        var sep = isMd ? "\n---\n\n" : isBB ? "\n[hr]\n\n" : "\n- - - - - - - - - - - - - - - - - - - -\n\n";
         out += steps.join(sep) + "\n";
       }
 
