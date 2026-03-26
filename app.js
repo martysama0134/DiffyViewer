@@ -1235,7 +1235,11 @@
   function encodeToHash(raw) {
     try {
       const compressed = pako.deflateRaw(new TextEncoder().encode(raw));
-      let b64 = btoa(String.fromCharCode.apply(null, compressed));
+      let bin = "";
+      for (let i = 0; i < compressed.length; i += 8192) {
+        bin += String.fromCharCode.apply(null, compressed.subarray(i, i + 8192));
+      }
+      let b64 = btoa(bin);
       // base64 → base64url
       b64 = b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
       return b64;
