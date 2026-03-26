@@ -217,6 +217,7 @@
   const exportMenu = $("#exportMenu");
   const btnExportMarkdown = $("#btnExportMarkdown");
   const btnExportBBCode = $("#btnExportBBCode");
+  const btnExportPlain = $("#btnExportPlain");
   const btnTutorial = $("#btnTutorial");
   const btnCollapseAll = $("#btnCollapseAll");
   const btnToggleSidebar = $("#btnToggleSidebar");
@@ -823,6 +824,23 @@
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
   });
 
+  // Export tutorial as plain text
+  btnExportPlain.addEventListener("click", function () {
+    if (isWebView) { webViewWarn(btnExport); return; }
+    if (!currentRaw || !tutorialActive) return;
+    var parsed = Diff2Html.parse(currentRaw);
+    var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
+    var txt = generateTutorialText(filtered, currentRaw, "plain");
+    var blob = new Blob([txt], { type: "text/plain" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "tutorial.txt";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  });
+
   // ═══════════════════════════════════════════════════════════
   // Tutorial view
   // ═══════════════════════════════════════════════════════════
@@ -895,26 +913,32 @@
 
   function generateTutorialText(parsed, raw, format) {
     var isMd = format === "markdown";
+    var isBB = format === "bbcode";
     var out = "";
 
     function code(text, lang) {
       if (isMd) return "```" + (lang || "") + "\n" + text + "\n```\n";
-      return "[code]" + text + "[/code]\n";
+      if (isBB) return "[code]" + text + "[/code]\n";
+      return text + "\n";
     }
     function heading(text, level) {
       if (isMd) return "#".repeat(level) + " " + text + "\n\n";
-      return "[size=" + (7 - level) + "][b]" + text + "[/b][/size]\n\n";
+      if (isBB) return "[size=" + (7 - level) + "][b]" + text + "[/b][/size]\n\n";
+      var line = "=".repeat(text.length);
+      return (level <= 1 ? line + "\n" : "") + text + "\n" + line + "\n\n";
     }
     function bold(text) {
       if (isMd) return "**" + text + "**";
-      return "[b]" + text + "[/b]";
+      if (isBB) return "[b]" + text + "[/b]";
+      return text.toUpperCase();
     }
     function label(text) {
       return bold(text) + "\n";
     }
     function hr() {
       if (isMd) return "---\n\n";
-      return "[hr]\n\n";
+      if (isBB) return "[hr]\n\n";
+      return "────────────────────────────────────────\n\n";
     }
 
     // Commit metadata
@@ -992,7 +1016,7 @@
             if (step) steps.push(step);
           }
         });
-        var sep = isMd ? "\n---\n\n" : "\n[hr]\n\n";
+        var sep = isMd ? "\n---\n\n" : isBB ? "\n[hr]\n\n" : "\n- - -\n\n";
         out += steps.join(sep) + "\n";
       }
 
