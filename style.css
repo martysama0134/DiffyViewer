@@ -688,6 +688,20 @@ main {
   text-decoration: underline;
 }
 
+.tutorial-stats {
+  margin-left: 8px;
+  font-size: 12px;
+}
+
+.tutorial-stat-add {
+  color: var(--green);
+}
+
+.tutorial-stat-del {
+  color: var(--red);
+  margin-left: 4px;
+}
+
 .tutorial-file {
   border: 1px solid var(--border);
   border-radius: 6px;

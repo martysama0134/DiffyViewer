@@ -757,6 +757,9 @@
         '.tutorial-index li{padding:4px 14px;font-family:monospace;font-size:13px}\n' +
         '.tutorial-index a{color:' + t.accent + ';text-decoration:none}\n' +
         '.tutorial-index a:hover{text-decoration:underline}\n' +
+        '.tutorial-stats{margin-left:8px;font-size:12px}\n' +
+        '.tutorial-stat-add{color:' + t.green + '}\n' +
+        '.tutorial-stat-del{color:' + t.red + ';margin-left:4px}\n' +
         '.tutorial-copy{position:absolute;top:6px;right:6px;background:' + t.surface + ';border:1px solid ' + t.border + ';color:' + t.textMuted + ';font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer}\n' +
         '.tutorial-copy:hover{color:' + t.text + ';border-color:' + t.accent + '}\n';
     }
@@ -1004,11 +1007,17 @@
     if (forExport && parsed.length > 1) {
       html += '<div class="tutorial-index"><div class="tutorial-index-header">Files</div><ul>';
       parsed.forEach(function (file, idx) {
-        var fp = file.newName || file.oldName || "(unknown)";
-        var badge = "";
-        if (file.oldName === "/dev/null") badge = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
-        else if (file.newName === "/dev/null") badge = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
-        html += '<li><a href="#tutorial-file-' + idx + '">' + esc(fp) + '</a>' + badge + '</li>';
+        var fp = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
+        var stats = "";
+        if (file.oldName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
+        else if (file.newName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
+        else {
+          var p = [];
+          if (file.addedLines) p.push('<span class="tutorial-stat-add">+' + file.addedLines + '</span>');
+          if (file.deletedLines) p.push('<span class="tutorial-stat-del">-' + file.deletedLines + '</span>');
+          if (p.length) stats = ' <span class="tutorial-stats">' + p.join(' ') + '</span>';
+        }
+        html += '<li><a href="#tutorial-file-' + idx + '">' + esc(fp) + '</a>' + stats + '</li>';
       });
       html += '</ul></div>';
     }
