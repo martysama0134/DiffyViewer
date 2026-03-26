@@ -1,5 +1,20 @@
 # Changelog
 
+## v1.4.0
+
+### Changes
+
+- Removed "New Diff" button (use logo click or Esc to go home)
+- Renamed "HTML" button to "Export HTML" and moved it to last position in toolbar
+- In-app WebView detection (Telegram, Instagram, Facebook, etc.) — shows "Open in browser" hint on download buttons
+
+### Fixes
+
+- Fix "Find:" label showing grey instead of yellow in tutorial view (missing `--yellow` CSS variable)
+- Fix mobile downloads not triggering (anchor element now appended to DOM before click)
+- Fix tutorial export copy button on non-HTTPS contexts (fallback to `execCommand`)
+- Fix WebView warning button text not restoring after double-click
+
 ## v1.3.0
 
 ### Features
