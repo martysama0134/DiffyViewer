@@ -1,5 +1,19 @@
 # Changelog
 
+## v1.5.0
+
+### Features
+
+- **Export dropdown** — single `⬇ Export ▾` button replaces individual download buttons, with conditional menu items
+- **Markdown tutorial export** — fenced code blocks, headings, horizontal rule separators between steps
+- **BBCode tutorial export** — `[code]`, `[b]`, `[size]`, `[hr]` tags for forum posting
+- **Plain text tutorial export** — no markup, works anywhere (notepad, Discord, DMs)
+
+### Changes
+
+- Reordered toolbar: Tutorial before export buttons
+- Download buttons now show `⬇` emoji prefix
+
 ## v1.4.0
 
 ### Changes
