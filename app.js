@@ -585,7 +585,7 @@
   function buildSidebarTree(parsed) {
     const root = { children: {}, files: [] };
     parsed.forEach((file, idx) => {
-      const filePath = file.newName || file.oldName || "(unknown)";
+      const filePath = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
       const parts = filePath.split("/");
       let node = root;
       for (let i = 0; i < parts.length - 1; i++) {
