@@ -213,6 +213,10 @@
   const btnSample = $("#btnSample");
   const btnDownload = $("#btnDownload");
   const btnDownloadHtml = $("#btnDownloadHtml");
+  const btnExport = $("#btnExport");
+  const exportMenu = $("#exportMenu");
+  const btnExportMarkdown = $("#btnExportMarkdown");
+  const btnExportBBCode = $("#btnExportBBCode");
   const btnTutorial = $("#btnTutorial");
   const btnCollapseAll = $("#btnCollapseAll");
   const btnToggleSidebar = $("#btnToggleSidebar");
@@ -664,11 +668,32 @@
   });
 
   // ═══════════════════════════════════════════════════════════
+  // Export dropdown
+  // ═══════════════════════════════════════════════════════════
+  btnExport.addEventListener("click", function (e) {
+    e.stopPropagation();
+    exportMenu.classList.toggle("hidden");
+  });
+
+  document.addEventListener("click", function () {
+    exportMenu.classList.add("hidden");
+  });
+
+  exportMenu.addEventListener("click", function () {
+    exportMenu.classList.add("hidden");
+  });
+
+  function updateExportMenu() {
+    exportMenu.querySelectorAll(".export-tutorial-only").forEach(function (el) {
+      el.classList.toggle("hidden", !tutorialActive);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════════════
   // Download (with WebView detection)
   // ═══════════════════════════════════════════════════════════
   if (isWebView) {
-    btnDownload.title = "Open in browser to download";
-    btnDownloadHtml.title = "Open in browser to export";
+    btnExport.title = "Open in browser to download";
   }
 
   function webViewWarn(btn) {
@@ -679,7 +704,7 @@
   }
 
   btnDownload.addEventListener("click", () => {
-    if (isWebView) { webViewWarn(btnDownload); return; }
+    if (isWebView) { webViewWarn(btnExport); return; }
     if (!currentRaw) return;
     const blob = new Blob([currentRaw], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -693,7 +718,7 @@
 
   // Export as self-contained HTML
   btnDownloadHtml.addEventListener("click", () => {
-    if (isWebView) { webViewWarn(btnDownloadHtml); return; }
+    if (isWebView) { webViewWarn(btnExport); return; }
     if (!diffContainer.innerHTML) return;
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
     const hljsName = t.type === "dark" ? "github-dark" : "github";
@@ -759,6 +784,40 @@
     const a = document.createElement("a");
     a.href = url;
     a.download = "diff.html";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  });
+
+  // Export tutorial as Markdown
+  btnExportMarkdown.addEventListener("click", function () {
+    if (isWebView) { webViewWarn(btnExport); return; }
+    if (!currentRaw || !tutorialActive) return;
+    var parsed = Diff2Html.parse(currentRaw);
+    var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
+    var md = generateTutorialText(filtered, currentRaw, "markdown");
+    var blob = new Blob([md], { type: "text/markdown" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "tutorial.md";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+  });
+
+  // Export tutorial as BBCode
+  btnExportBBCode.addEventListener("click", function () {
+    if (isWebView) { webViewWarn(btnExport); return; }
+    if (!currentRaw || !tutorialActive) return;
+    var parsed = Diff2Html.parse(currentRaw);
+    var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
+    var bb = generateTutorialText(filtered, currentRaw, "bbcode");
+    var blob = new Blob([bb], { type: "text/plain" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "tutorial.txt";
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
@@ -832,6 +891,112 @@
 
     if (!meta.author && !meta.subject) return null;
     return meta;
+  }
+
+  function generateTutorialText(parsed, raw, format) {
+    var isMd = format === "markdown";
+    var out = "";
+
+    function code(text, lang) {
+      if (isMd) return "```" + (lang || "") + "\n" + text + "\n```\n";
+      return "[code]" + text + "[/code]\n";
+    }
+    function heading(text, level) {
+      if (isMd) return "#".repeat(level) + " " + text + "\n\n";
+      return "[size=" + (7 - level) + "][b]" + text + "[/b][/size]\n\n";
+    }
+    function bold(text) {
+      if (isMd) return "**" + text + "**";
+      return "[b]" + text + "[/b]";
+    }
+    function label(text) {
+      return bold(text) + "\n";
+    }
+    function hr() {
+      if (isMd) return "---\n\n";
+      return "[hr]\n\n";
+    }
+
+    // Commit metadata
+    var meta = raw ? parseCommitMeta(raw) : null;
+    if (meta) {
+      if (meta.subject) out += heading(meta.subject, 1);
+      if (meta.author) out += bold("Author:") + " " + meta.author + "\n";
+      if (meta.date) out += bold("Date:") + " " + meta.date + "\n";
+      if (meta.author || meta.date) out += "\n";
+      if (meta.body) out += meta.body + "\n\n";
+      out += hr();
+    }
+
+    parsed.forEach(function (file, idx) {
+      var filePath = file.newName || file.oldName || "(unknown)";
+      var isNew = file.oldName === "/dev/null";
+      var isDeleted = file.newName === "/dev/null";
+      var fileLabel = filePath;
+      if (isNew) fileLabel = "[NEW FILE] " + filePath;
+      else if (isDeleted) fileLabel = "[DELETE FILE] " + filePath;
+
+      out += heading(fileLabel, 2);
+
+      if (isNew) {
+        var content = "";
+        file.blocks.forEach(function (block) {
+          block.lines.forEach(function (line) {
+            if (line.type === "insert") content += stripPrefix(line.content) + "\n";
+          });
+        });
+        out += label("Create this file with the following content:") + code(content.replace(/\n$/, "")) + "\n";
+      } else if (isDeleted) {
+        out += bold("Delete this file.") + "\n\n";
+      } else {
+        file.blocks.forEach(function (block) {
+          var lines = block.lines;
+          var i = 0;
+          while (i < lines.length) {
+            while (i < lines.length && lines[i].type === "context") { i++; }
+            if (i >= lines.length) break;
+
+            var contextBefore = [];
+            var cb = i - 1;
+            while (cb >= 0 && lines[cb].type === "context" && contextBefore.length < 2) {
+              contextBefore.unshift(lines[cb]);
+              cb--;
+            }
+
+            var dels = [];
+            var adds = [];
+            while (i < lines.length && (lines[i].type === "delete" || lines[i].type === "insert")) {
+              if (lines[i].type === "delete") dels.push(lines[i]);
+              else adds.push(lines[i]);
+              i++;
+            }
+
+            if (dels.length > 0 && adds.length > 0) {
+              var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              out += label("Find:") + code(findText);
+              out += label("Replace with:") + code(replaceText) + "\n";
+            } else if (adds.length > 0) {
+              var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              if (contextBefore.length > 0) {
+                var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
+                out += label("Find:") + code(anchorText);
+                out += label("Add below:") + code(addText) + "\n";
+              } else {
+                out += label("Add at the beginning of the section:") + code(addText) + "\n";
+              }
+            } else if (dels.length > 0) {
+              var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
+              out += label("Remove:") + code(removeText) + "\n";
+            }
+          }
+        });
+      }
+
+      if (idx < parsed.length - 1) out += hr();
+    });
+
+    return out;
   }
 
   function generateTutorialHtml(parsed, forExport, raw) {
@@ -993,6 +1158,7 @@
     if (!currentRaw) return;
     tutorialActive = !tutorialActive;
     btnTutorial.classList.toggle("btn-active", tutorialActive);
+    updateExportMenu();
 
     if (tutorialActive) {
       var parsed = Diff2Html.parse(currentRaw);
