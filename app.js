@@ -919,13 +919,13 @@
     function code(text, lang) {
       if (isMd) return "```" + (lang || "") + "\n" + text + "\n```\n";
       if (isBB) return "[code]" + text + "[/code]\n";
-      return text + "\n";
+      return text + "\n\n";
     }
     function heading(text, level) {
       if (isMd) return "#".repeat(level) + " " + text + "\n\n";
       if (isBB) return "[size=" + (7 - level) + "][b]" + text + "[/b][/size]\n\n";
       var line = "=".repeat(text.length);
-      return (level <= 1 ? line + "\n" : "") + text + "\n" + line + "\n\n";
+      return line + "\n" + text + "\n" + line + "\n\n";
     }
     function bold(text) {
       if (isMd) return "**" + text + "**";
@@ -938,7 +938,7 @@
     function hr() {
       if (isMd) return "---\n\n";
       if (isBB) return "[hr]\n\n";
-      return "────────────────────────────────────────\n\n";
+      return "========================================\n\n";
     }
 
     // Commit metadata
