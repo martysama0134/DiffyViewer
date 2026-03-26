@@ -938,7 +938,7 @@
     function hr() {
       if (isMd) return "---\n\n";
       if (isBB) return "[hr]\n\n";
-      return "========================================\n\n";
+      return "\n";
     }
 
     // Commit metadata
@@ -1023,6 +1023,7 @@
       if (idx < parsed.length - 1) out += hr();
     });
 
+    if (!isMd && !isBB) out += "========================================\n";
     return out;
   }
 
