@@ -913,7 +913,7 @@
     }
 
     parsed.forEach(function (file, idx) {
-      var filePath = file.newName || file.oldName || "(unknown)";
+      var filePath = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
       var isNew = file.oldName === "/dev/null";
       var isDeleted = file.newName === "/dev/null";
       var fileLabel = filePath;
@@ -1023,7 +1023,7 @@
     }
 
     parsed.forEach(function (file, idx) {
-      const filePath = file.newName || file.oldName || "(unknown)";
+      const filePath = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
       const isNew = file.oldName === "/dev/null";
       const isDeleted = file.newName === "/dev/null";
       const ls = langSuffix(file);
