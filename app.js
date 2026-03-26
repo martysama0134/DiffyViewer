@@ -975,19 +975,19 @@
               var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
               var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
               out += label("Find:") + code(findText);
-              out += label("Replace with:") + code(replaceText) + "\n";
+              out += label("Replace with:") + code(replaceText) + "\n\n";
             } else if (adds.length > 0) {
               var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
               if (contextBefore.length > 0) {
                 var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
                 out += label("Find:") + code(anchorText);
-                out += label("Add below:") + code(addText) + "\n";
+                out += label("Add below:") + code(addText) + "\n\n";
               } else {
-                out += label("Add at the beginning of the section:") + code(addText) + "\n";
+                out += label("Add at the beginning of the section:") + code(addText) + "\n\n";
               }
             } else if (dels.length > 0) {
               var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              out += label("Remove:") + code(removeText) + "\n";
+              out += label("Remove:") + code(removeText) + "\n\n";
             }
           }
         });
