@@ -672,10 +672,10 @@
   }
 
   function webViewWarn(btn) {
-    var orig = btn.textContent;
+    if (!btn.dataset.origText) btn.dataset.origText = btn.textContent;
     btn.textContent = "Open in browser ↗";
     btn.style.color = "var(--yellow)";
-    setTimeout(function () { btn.textContent = orig; btn.style.color = ""; }, 2500);
+    setTimeout(function () { btn.textContent = btn.dataset.origText; btn.style.color = ""; }, 2500);
   }
 
   btnDownload.addEventListener("click", () => {
@@ -735,7 +735,7 @@
       ? generateTutorialHtml(Diff2Html.parse(currentRaw), true, currentRaw)
       : diffContainer.innerHTML;
     var exportScript = tutorialActive
-      ? '<script>document.addEventListener("click",function(e){var btn=e.target.closest(".tutorial-copy");if(!btn)return;var pre=btn.parentElement.querySelector(".tutorial-code");if(!pre)return;navigator.clipboard.writeText(pre.textContent).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)})});<\/script>\n'
+      ? '<script>function tutCopy(text,btn){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)}).catch(function(){fallback(text,btn)})}else{fallback(text,btn)}}function fallback(text,btn){var ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)}catch(e){btn.textContent="Failed"}document.body.removeChild(ta)}document.addEventListener("click",function(e){var btn=e.target.closest(".tutorial-copy");if(!btn)return;var pre=btn.parentElement.querySelector(".tutorial-code");if(!pre)return;tutCopy(pre.textContent,btn)});<\/script>\n'
       : '';
     const html = '<!DOCTYPE html>\n<html lang="en"><head>\n' +
       '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">\n' +
