@@ -644,7 +644,8 @@
   function esc(str) { const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
 
   function scrollToFile(idx) {
-    const wrappers = diffContainer.querySelectorAll(".d2h-file-wrapper");
+    const sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
+    const wrappers = diffContainer.querySelectorAll(sel);
     if (!wrappers[idx]) return;
     const y = wrappers[idx].getBoundingClientRect().top + window.scrollY - 98;
     window.scrollTo({ top: y, behavior: "smooth" });
