@@ -757,15 +757,17 @@
     if (!diffContainer.innerHTML) return;
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
     const hljsName = t.type === "dark" ? "github-dark" : "github";
+    // Commit metadata CSS — always included when metadata is present (diff + tutorial views)
+    var commitCss =
+      '.tutorial-commit{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;padding:16px;background:' + t.surface + '}\n' +
+      '.tutorial-commit-subject{font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3}\n' +
+      '.tutorial-commit-meta{display:flex;gap:16px;font-size:13px;color:' + t.textMuted + ';flex-wrap:wrap}\n' +
+      '.tutorial-commit-author{color:' + t.accent + '}\n' +
+      '.tutorial-commit-body{margin-top:12px;padding-top:12px;border-top:1px solid ' + t.border + ';font-size:13px;line-height:1.5;white-space:pre-wrap}\n';
     var tutorialCss = "";
     if (tutorialActive) {
       tutorialCss =
         '.tutorial-view{max-width:900px}\n' +
-        '.tutorial-commit{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;padding:16px;background:' + t.surface + '}\n' +
-        '.tutorial-commit-subject{font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3}\n' +
-        '.tutorial-commit-meta{display:flex;gap:16px;font-size:13px;color:' + t.textMuted + ';flex-wrap:wrap}\n' +
-        '.tutorial-commit-author{color:' + t.accent + '}\n' +
-        '.tutorial-commit-body{margin-top:12px;padding-top:12px;border-top:1px solid ' + t.border + ';font-size:13px;line-height:1.5;white-space:pre-wrap}\n' +
         '.tutorial-file{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
         '.tutorial-file-header{background:' + t.surface + ';padding:10px 14px;font-family:monospace;font-size:13px;font-weight:600;border-bottom:1px solid ' + t.border + '}\n' +
         '.tutorial-file-path{color:' + t.accent + '}\n' +
@@ -812,6 +814,7 @@
       '.d2h-file-wrapper{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:16px;overflow:hidden}\n' +
       '.d2h-file-header{background:' + t.bg + '}\n' +
       '.d2h-file-list-wrapper{display:none}\n' +
+      commitCss +
       tutorialCss +
       '</style>\n' +
       '</head><body>\n' +
