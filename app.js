@@ -1502,6 +1502,9 @@
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 403 && rewritten.useApi) {
+          throw new Error("GitHub API rate limit exceeded (60 requests/hour for unauthenticated use). Try again later or download the patch file manually.");
+        }
         throw new Error("HTTP " + response.status + " " + response.statusText);
       }
 
