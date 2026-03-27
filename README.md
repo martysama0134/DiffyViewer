@@ -12,9 +12,12 @@ An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no s
 - **Character-level diffs** -- see exactly which characters changed within a line
 - **24 color themes** -- GitHub Dark/Light, Dracula, Nord, Catppuccin Mocha/Latte, Tokyo Night, One Dark, Solarized Dark/Light, Gruvbox Dark/Light, Monokai Pro, Rose Pine/Dawn, Kanagawa, Everforest Dark, Ayu Dark, Palenight, Synthwave '84, Poimandres, Night Owl, Zenburn, Zenburn Darker
 - **Hide Whitespace** -- filters whitespace-only changes using LCS alignment, matching `git diff -w` behavior
+- **Commit metadata** -- displays author, date, subject, and body from `git log -p` and `git format-patch` output
 - **Sidebar file tree** -- hierarchical directory tree with per-file +/- stats, collapsible directories
+- **File search filter** -- filter files by path in the sidebar; hides non-matching files in both the tree and the diff view
 - **Collapse/Expand All** -- toggle all file diffs at once
 - **Shareable URLs** -- diffs are compressed (pako deflate) and stored in the URL hash, no server needed
+- **URL loader** -- load diffs from remote URLs via `#@<url>` in the hash or by pasting a URL into the textarea; GitHub commit and PR URLs are auto-rewritten to the API for CORS
 
 ### Tutorial View
 - **Find/Replace instructions** -- converts diffs into step-by-step instructions (Find, Replace with, Add below, Remove)
@@ -25,14 +28,15 @@ An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no s
 
 ### Export
 - **Patch** -- download the raw diff as a `.patch` file
-- **HTML** -- self-contained HTML with inline styles, file tree index, and copy buttons
+- **HTML** -- self-contained HTML with inline styles, clickable file tree index, commit header, and copy buttons (both diff and tutorial modes)
 - **Markdown** -- fenced code blocks with horizontal rule separators between steps
 - **BBCode** -- `[code]`, `[b]`, `[size]`, `[hr]` tags for forum posting
 - **Plain Text** -- no markup, works anywhere (notepad, Discord, DMs)
+- **Filtered exports** -- when a file filter is active, exports only include matching files with a "filtered" notice and `-filtered` filename suffix
 
 ### General
 - **Drag & drop** -- drop `.diff` or `.patch` files anywhere on the page
-- **Keyboard shortcuts** -- `j`/`k` navigate files, `b` toggle tree, `w` toggle whitespace, `Esc` go home, `Ctrl+Enter` submit
+- **Keyboard shortcuts** -- `j`/`k` navigate files, `b` toggle tree, `w` toggle whitespace, `f` focus file filter, `Esc` go home, `Ctrl+Enter` submit
 - **Persistent preferences** -- theme, view mode, sidebar, and whitespace settings saved in localStorage
 - **Sticky header** -- toolbar stays visible while scrolling through long diffs
 - **Mobile support** -- responsive layout, drawer sidebar with backdrop dismiss, unified view default
@@ -45,9 +49,15 @@ An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no s
 Visit the deployed site, then either:
 
 1. **Paste** a diff into the textarea and click **View Diff**
-2. **Upload** a `.diff` or `.patch` file
-3. **Drag & drop** a file onto the page
-4. **Open a shared URL** with the diff encoded in the hash
+2. **Paste a URL** to a `.patch` or `.diff` file (GitHub commit/PR URLs work directly)
+3. **Upload** a `.diff` or `.patch` file
+4. **Drag & drop** a file onto the page
+5. **Open a shared URL** with the diff encoded in the hash
+
+You can also link directly to a remote patch using the `#@` hash scheme:
+```
+https://martysama0134.github.io/DiffyViewer/#@https://github.com/owner/repo/commit/sha
+```
 
 To generate a tutorial, click **Tutorial** after viewing a diff, then use **Export** to download in your preferred format.
 
