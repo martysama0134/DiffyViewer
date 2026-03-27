@@ -1565,7 +1565,7 @@
     if (e.key === "w") { e.preventDefault(); btnHideWhitespace.click(); return; }
 
     const sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
-    const wrappers = [...diffContainer.querySelectorAll(sel)];
+    const wrappers = [...diffContainer.querySelectorAll(sel)].filter(function (el) { return el.style.display !== "none"; });
     if (wrappers.length <= 1) return;
     if (e.key === "j" || e.key === "k") {
       e.preventDefault();
