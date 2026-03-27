@@ -1,5 +1,25 @@
 # Changelog
 
+## v2.0.0
+
+### Features
+
+- **GitHub Gist URL support** — paste a `gist.github.com/user/id` URL to load diffs directly from GitHub Gists (single-file, with truncation handling)
+- **URL hash size warning** — diffs too large to share via URL now show a warning instead of silently creating broken links
+
+### Improvements
+
+- SRI integrity hashes on dynamically loaded highlight.js theme CSS (closes the last CDN integrity gap)
+- Clipboard fallback (`execCommand`) for tutorial copy buttons and share URL copy on non-HTTPS contexts
+- Specific error message for GitHub API rate limit (403) responses
+- Extracted `groupHunkSteps()` helper deduplicating ~70 lines of parallel tutorial step generation logic
+- Tutorial state fully reset when navigating home
+
+### Fixes
+
+- Fix `j`/`k` navigation skipping hidden files when file filter is active
+- Fix tutorial state (flags, event listener, export menu) not resetting on home navigation
+
 ## v1.9.0
 
 ### Features

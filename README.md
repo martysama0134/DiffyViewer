@@ -17,7 +17,7 @@ An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no s
 - **File search filter** -- filter files by path in the sidebar; hides non-matching files in both the tree and the diff view
 - **Collapse/Expand All** -- toggle all file diffs at once
 - **Shareable URLs** -- diffs are compressed (pako deflate) and stored in the URL hash, no server needed
-- **URL loader** -- load diffs from remote URLs via `#@<url>` in the hash or by pasting a URL into the textarea; GitHub commit and PR URLs are auto-rewritten to the API for CORS
+- **URL loader** -- load diffs from remote URLs via `#@<url>` in the hash or by pasting a URL into the textarea; supports GitHub commits, PRs, and Gists (auto-rewritten to CORS-friendly API)
 
 ### Tutorial View
 - **Find/Replace instructions** -- converts diffs into step-by-step instructions (Find, Replace with, Add below, Remove)
@@ -49,7 +49,7 @@ An alternative to [diffy.org](https://github.com/pbu88/diffy) that requires no s
 Visit the deployed site, then either:
 
 1. **Paste** a diff into the textarea and click **View Diff**
-2. **Paste a URL** to a `.patch` or `.diff` file (GitHub commit/PR URLs work directly)
+2. **Paste a URL** to a `.patch` or `.diff` file (GitHub commits, PRs, and Gists work directly)
 3. **Upload** a `.diff` or `.patch` file
 4. **Drag & drop** a file onto the page
 5. **Open a shared URL** with the diff encoded in the hash
@@ -57,6 +57,7 @@ Visit the deployed site, then either:
 You can also link directly to a remote patch using the `#@` hash scheme:
 ```
 https://martysama0134.github.io/DiffyViewer/#@https://github.com/owner/repo/commit/sha
+https://martysama0134.github.io/DiffyViewer/#@https://gist.github.com/user/gist-id
 ```
 
 To generate a tutorial, click **Tutorial** after viewing a diff, then use **Export** to download in your preferred format.
