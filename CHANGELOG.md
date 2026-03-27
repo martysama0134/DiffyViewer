@@ -1,5 +1,26 @@
 # Changelog
 
+## v1.9.0
+
+### Features
+
+- **File search filter** — filter input in sidebar filters files by path in real-time, hiding non-matching files in both the sidebar tree and the diff/tutorial view
+- **Filtered exports** — all exports (HTML, Markdown, BBCode, Plain Text) respect the active file filter, with a yellow "Showing X of Y files (filtered)" notice in HTML exports
+- **File index TOC in diff HTML export** — non-tutorial HTML exports now include a clickable file tree index, matching the tutorial export
+- **Context-aware export filenames** — HTML exports use `diff.html` / `tutorial.html`, or `diff-filtered.html` / `tutorial-filtered.html` when a filter is active
+- **Footer** — links to the GitHub repository
+
+### Improvements
+
+- URL examples shown below textarea (GitHub commit, PR, `.patch`/`.diff` links)
+- File filter preserved across whitespace and view mode toggles, reset on new diff
+- Stats bar shows "X of Y files (filtered)" when filter is active
+- Sample diff now includes a commit header with description
+- Keyboard shortcut `f` focuses the file filter, `Esc` clears it
+- Extracted shared helpers (`resolveFilePath`, `buildCommitHeaderHtml`, `buildFileIndexHtml`, `rerenderWithFilter`) reducing ~70 lines of duplication
+- Normalized `var` to `let`/`const` in filter-related functions
+- Removed unused variable in export handler
+
 ## v1.8.0
 
 ### Features
