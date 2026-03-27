@@ -240,6 +240,7 @@
   let hideWhitespace = prefs.hideWhitespace;
   let currentRaw = "";
   let collapsed = false;
+  let sourceUrl = ""; // non-empty when diff was loaded via #@<url>
 
   // ═══════════════════════════════════════════════════════════
   // Theme logic
@@ -540,7 +541,22 @@
       },
     };
 
-    const parsed = Diff2Html.parse(raw);
+    let parsed;
+    try {
+      parsed = Diff2Html.parse(raw);
+    } catch (e) {
+      diffContainer.innerHTML =
+        '<div class="url-error">' +
+        '<h3>Failed to parse diff</h3>' +
+        '<p>The input does not appear to be a valid unified diff or git diff.</p>' +
+        '<button class="btn secondary" id="btnParseErrorBack">Go Back</button>' +
+        '</div>';
+      inputPanel.classList.add("hidden");
+      outputPanel.classList.remove("hidden");
+      outputToolbar.classList.add("hidden");
+      diffContainer.querySelector("#btnParseErrorBack").addEventListener("click", goHome);
+      return;
+    }
     const filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
 
     diffContainer.innerHTML = "";
@@ -1178,7 +1194,13 @@
   // ═══════════════════════════════════════════════════════════
   btnDiff.addEventListener("click", () => {
     const raw = diffInput.value.trim();
-    if (raw) renderDiff(raw);
+    if (!raw) return;
+    if (looksLikeUrl(raw)) {
+      fetchDiffFromUrl(raw);
+    } else {
+      sourceUrl = "";
+      renderDiff(raw);
+    }
   });
 
   function goHome() {
@@ -1188,6 +1210,7 @@
     diffContainer.innerHTML = "";
     sidebarTree.innerHTML = "";
     diffStats.innerHTML = "";
+    sourceUrl = "";
     history.replaceState(null, "", location.pathname);
   }
 
@@ -1226,13 +1249,21 @@
   }
 
   function updateShareUrl(raw) {
-    const hash = encodeToHash(raw);
-    if (hash) {
+    if (sourceUrl) {
+      // Diff loaded from URL — share the URL reference, not the compressed diff
+      const hash = "@" + sourceUrl;
       const url = location.origin + location.pathname + "#" + hash;
       history.replaceState(null, "", "#" + hash);
       shareInput.value = url;
     } else {
-      shareInput.value = location.href;
+      const hash = encodeToHash(raw);
+      if (hash) {
+        const url = location.origin + location.pathname + "#" + hash;
+        history.replaceState(null, "", "#" + hash);
+        shareInput.value = url;
+      } else {
+        shareInput.value = location.href;
+      }
     }
   }
 
@@ -1243,6 +1274,92 @@
       setTimeout(() => { btnCopyUrl.textContent = orig; }, 1500);
     });
   });
+
+  // ═══════════════════════════════════════════════════════════
+  // Fetch diff from URL (#@<url> hash scheme)
+  // ═══════════════════════════════════════════════════════════
+
+  // Rewrite GitHub URLs to CORS-friendly API endpoints
+  // github.com commit/PR pages don't send Access-Control-Allow-Origin,
+  // but api.github.com does with Accept: application/vnd.github.v3.patch
+  var ghCommitRe = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/commit\/([0-9a-f]+?)(?:\.(?:patch|diff))?$/;
+  var ghPullRe = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+?)(?:\.(?:patch|diff))?$/;
+
+  function rewriteGitHubUrl(url) {
+    var m;
+    m = ghCommitRe.exec(url);
+    if (m) return { url: "https://api.github.com/repos/" + m[1] + "/" + m[2] + "/commits/" + m[3], useApi: true };
+    m = ghPullRe.exec(url);
+    if (m) return { url: "https://api.github.com/repos/" + m[1] + "/" + m[2] + "/pulls/" + m[3], useApi: true };
+    return { url: url, useApi: false };
+  }
+
+  function looksLikeUrl(text) {
+    return /^https?:\/\/\S+$/i.test(text);
+  }
+
+  async function fetchDiffFromUrl(url) {
+    // Show loading state
+    inputPanel.classList.add("hidden");
+    outputPanel.classList.remove("hidden");
+    outputToolbar.classList.add("hidden");
+    diffContainer.innerHTML =
+      '<div class="url-loading">' +
+      '<div class="url-loading-spinner"></div>' +
+      '<p>Loading diff from URL\u2026</p>' +
+      '<p class="url-loading-url">' + esc(url) + '</p>' +
+      '</div>';
+
+    try {
+      var rewritten = rewriteGitHubUrl(url);
+      var controller = new AbortController();
+      var timeoutId = setTimeout(function () { controller.abort(); }, 15000);
+
+      var headers = rewritten.useApi
+        ? { "Accept": "application/vnd.github.v3.patch" }
+        : { "Accept": "text/plain, application/x-patch, */*" };
+
+      var response = await fetch(rewritten.url, {
+        signal: controller.signal,
+        headers: headers,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error("HTTP " + response.status + " " + response.statusText);
+      }
+
+      var text = await response.text();
+      if (!text.trim()) {
+        throw new Error("Empty response");
+      }
+
+      sourceUrl = url;
+      diffInput.value = text;
+      renderDiff(text.trim());
+
+    } catch (err) {
+      var title = "Failed to load diff";
+      var detail = err.message;
+
+      if (err.name === "AbortError") {
+        detail = "Request timed out after 15 seconds.";
+      } else if (err.message === "Failed to fetch" || err.name === "TypeError") {
+        title = "Could not fetch URL";
+        detail = "This is likely a CORS restriction. The remote server does not allow direct browser requests. " +
+                 "Try downloading the file and pasting its contents instead.";
+      }
+
+      diffContainer.innerHTML =
+        '<div class="url-error">' +
+        '<h3>' + esc(title) + '</h3>' +
+        '<p>' + esc(detail) + '</p>' +
+        '<p class="url-error-url">' + esc(url) + '</p>' +
+        '<button class="btn secondary" id="btnUrlErrorBack">Go Back</button>' +
+        '</div>';
+      diffContainer.querySelector("#btnUrlErrorBack").addEventListener("click", goHome);
+    }
+  }
 
   // ═══════════════════════════════════════════════════════════
   // File upload
@@ -1289,7 +1406,8 @@
     if (e.key === "b") { e.preventDefault(); btnToggleSidebar.click(); return; }
     if (e.key === "w") { e.preventDefault(); btnHideWhitespace.click(); return; }
 
-    const wrappers = [...diffContainer.querySelectorAll(".d2h-file-wrapper")];
+    const sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
+    const wrappers = [...diffContainer.querySelectorAll(sel)];
     if (wrappers.length <= 1) return;
     if (e.key === "j" || e.key === "k") {
       e.preventDefault();
@@ -1421,10 +1539,16 @@ index 9f8e7d6..3c2b1a0 100644
     // Load diff from URL hash if present
     const hash = location.hash.slice(1);
     if (hash) {
-      const decoded = decodeFromHash(hash);
-      if (decoded) {
-        diffInput.value = decoded;
-        renderDiff(decoded);
+      if (hash.startsWith("@")) {
+        // URL reference: #@https://...
+        var url = hash.slice(1);
+        if (url) fetchDiffFromUrl(url);
+      } else {
+        const decoded = decodeFromHash(hash);
+        if (decoded) {
+          diffInput.value = decoded;
+          renderDiff(decoded);
+        }
       }
     }
   })();
