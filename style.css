@@ -230,6 +230,24 @@ main {
   flex-direction: column;
 }
 
+/* ── Footer ── */
+.site-footer {
+  padding: 14px 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+.site-footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.site-footer a:hover {
+  text-decoration: underline;
+}
+
 /* ── Input panel ── */
 .input-panel {
   max-width: 860px;
