@@ -432,6 +432,32 @@ main {
   flex-shrink: 0;
 }
 
+.sidebar-filter {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sidebar-filter input {
+  width: 100%;
+  padding: 4px 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+  outline: none;
+}
+
+.sidebar-filter input:focus {
+  border-color: var(--accent);
+}
+
+.sidebar-filter input::placeholder {
+  color: var(--text-muted);
+}
+
 .sidebar-tree {
   flex: 1;
   overflow-y: auto;
@@ -480,6 +506,10 @@ main {
 
 .tree-dir.closed > .tree-children {
   display: none;
+}
+
+.tree-dir.filter-open > .tree-children {
+  display: block;
 }
 
 .tree-dir > .tree-label .tree-dirname {

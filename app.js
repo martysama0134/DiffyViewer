@@ -227,6 +227,7 @@
   const themeSelect = $("#themeSelect");
   const hljsLink = $("#hljsTheme");
   const shortcutHint = $("#shortcutHint");
+  const treeFilter = $("#treeFilter");
 
   // ═══════════════════════════════════════════════════════════
   // State
@@ -626,6 +627,7 @@
       node.files.push({ name: parts[parts.length - 1], fullPath: filePath, idx, added: file.addedLines, deleted: file.deletedLines });
     });
     sidebarTree.innerHTML = "";
+    treeFilter.value = "";
     renderTreeNode(root, sidebarTree, 0);
   }
 
@@ -669,6 +671,73 @@
     sidebarTree.querySelectorAll(".tree-file").forEach((f) => f.classList.remove("active"));
     const t = sidebarTree.querySelector('.tree-file[data-idx="' + idx + '"]');
     if (t) t.classList.add("active");
+  }
+
+  // ── File filter in sidebar ──
+  function filterTree(query) {
+    var q = query.toLowerCase();
+    var files = sidebarTree.querySelectorAll(".tree-file");
+    var dirs = sidebarTree.querySelectorAll(".tree-dir");
+    var sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
+    var wrappers = diffContainer.querySelectorAll(sel);
+    var total = files.length;
+
+    if (!q) {
+      // Reset: show all sidebar items and diff wrappers
+      files.forEach(function (f) { f.style.display = ""; });
+      dirs.forEach(function (d) { d.style.display = ""; d.classList.remove("filter-open"); });
+      wrappers.forEach(function (w) { w.style.display = ""; });
+      updateFilterHint(0, total);
+      return;
+    }
+
+    // Hide/show sidebar files and corresponding diff wrappers
+    var shown = 0;
+    files.forEach(function (f) {
+      var path = (f.title || "").toLowerCase();
+      var match = path.indexOf(q) !== -1;
+      f.style.display = match ? "" : "none";
+      if (match) shown++;
+      var idx = parseInt(f.dataset.idx, 10);
+      if (wrappers[idx]) wrappers[idx].style.display = match ? "" : "none";
+    });
+
+    // Walk dirs bottom-up: hide if no visible children, force-open if has visible children
+    var dirArr = [].slice.call(dirs).reverse();
+    dirArr.forEach(function (d) {
+      var hasVisible = d.querySelector('.tree-file:not([style*="display: none"]), .tree-dir:not([style*="display: none"])');
+      if (hasVisible) {
+        d.style.display = "";
+        d.classList.add("filter-open");
+      } else {
+        d.style.display = "none";
+        d.classList.remove("filter-open");
+      }
+    });
+
+    updateFilterHint(shown, total);
+  }
+
+  function updateFilterHint(shown, total) {
+    // Update stats bar to indicate filtering
+    var statFiles = diffStats.querySelector(".stat-files");
+    if (!statFiles) return;
+    if (shown > 0 && shown < total) {
+      statFiles.textContent = shown + " of " + total + " files (filtered)";
+    } else {
+      statFiles.textContent = total + " file" + (total !== 1 ? "s" : "");
+    }
+  }
+
+  treeFilter.addEventListener("input", function () { filterTree(treeFilter.value.trim()); });
+
+  function filterParsedFiles(parsed) {
+    var q = treeFilter.value.trim().toLowerCase();
+    if (!q) return parsed;
+    return parsed.filter(function (file) {
+      var fp = ((file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "").toLowerCase();
+      return fp.indexOf(q) !== -1;
+    });
   }
 
   function esc(str) { const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
@@ -757,13 +826,25 @@
     if (!diffContainer.innerHTML) return;
     const t = THEMES[currentThemeName] || THEMES["github-dark"];
     const hljsName = t.type === "dark" ? "github-dark" : "github";
-    // Commit metadata CSS — always included when metadata is present (diff + tutorial views)
-    var commitCss =
+    // Shared CSS — commit header, file index, badges (used by both diff + tutorial exports)
+    var sharedCss =
       '.tutorial-commit{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;padding:16px;background:' + t.surface + '}\n' +
       '.tutorial-commit-subject{font-size:18px;font-weight:700;margin-bottom:8px;line-height:1.3}\n' +
       '.tutorial-commit-meta{display:flex;gap:16px;font-size:13px;color:' + t.textMuted + ';flex-wrap:wrap}\n' +
       '.tutorial-commit-author{color:' + t.accent + '}\n' +
-      '.tutorial-commit-body{margin-top:12px;padding-top:12px;border-top:1px solid ' + t.border + ';font-size:13px;line-height:1.5;white-space:pre-wrap}\n';
+      '.tutorial-commit-body{margin-top:12px;padding-top:12px;border-top:1px solid ' + t.border + ';font-size:13px;line-height:1.5;white-space:pre-wrap}\n' +
+      '.tutorial-index{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
+      '.tutorial-index-header{background:' + t.surface + ';padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:' + t.textMuted + ';border-bottom:1px solid ' + t.border + '}\n' +
+      '.tutorial-index ul{list-style:none;margin:0;padding:6px 0}\n' +
+      '.tutorial-index li{padding:4px 14px;font-family:monospace;font-size:13px}\n' +
+      '.tutorial-index a{color:' + t.accent + ';text-decoration:none}\n' +
+      '.tutorial-index a:hover{text-decoration:underline}\n' +
+      '.tutorial-action-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 6px;border-radius:3px;vertical-align:middle}\n' +
+      '.tutorial-badge-new{background:' + t.green + ';color:#000}\n' +
+      '.tutorial-badge-delete{background:' + t.red + ';color:#fff}\n' +
+      '.tutorial-stats{margin-left:8px;font-size:12px}\n' +
+      '.tutorial-stat-add{color:' + t.green + '}\n' +
+      '.tutorial-stat-del{color:' + t.red + ';margin-left:4px}\n';
     var tutorialCss = "";
     if (tutorialActive) {
       tutorialCss =
@@ -771,9 +852,6 @@
         '.tutorial-file{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
         '.tutorial-file-header{background:' + t.surface + ';padding:10px 14px;font-family:monospace;font-size:13px;font-weight:600;border-bottom:1px solid ' + t.border + '}\n' +
         '.tutorial-file-path{color:' + t.accent + '}\n' +
-        '.tutorial-action-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:2px 6px;border-radius:3px;vertical-align:middle}\n' +
-        '.tutorial-badge-new{background:' + t.green + ';color:#000}\n' +
-        '.tutorial-badge-delete{background:' + t.red + ';color:#fff}\n' +
         '.tutorial-step{padding:12px 14px;border-bottom:1px solid ' + t.border + '}\n' +
         '.tutorial-step:last-child{border-bottom:none}\n' +
         '.tutorial-step+.tutorial-step{margin-top:4px;border-top:1px dashed ' + t.border + '}\n' +
@@ -784,21 +862,73 @@
         '.tutorial-instruction-remove{color:' + t.red + '}\n' +
         '.tutorial-code-wrap{position:relative}\n' +
         '.tutorial-code{background:' + t.bg + ';border:1px solid ' + t.border + ';border-radius:4px;padding:10px 12px;font-family:monospace;font-size:12px;line-height:1.5;overflow-x:auto;white-space:pre;margin:0}\n' +
-        '.tutorial-index{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:20px;overflow:hidden}\n' +
-        '.tutorial-index-header{background:' + t.surface + ';padding:10px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:' + t.textMuted + ';border-bottom:1px solid ' + t.border + '}\n' +
-        '.tutorial-index ul{list-style:none;margin:0;padding:6px 0}\n' +
-        '.tutorial-index li{padding:4px 14px;font-family:monospace;font-size:13px}\n' +
-        '.tutorial-index a{color:' + t.accent + ';text-decoration:none}\n' +
-        '.tutorial-index a:hover{text-decoration:underline}\n' +
-        '.tutorial-stats{margin-left:8px;font-size:12px}\n' +
-        '.tutorial-stat-add{color:' + t.green + '}\n' +
-        '.tutorial-stat-del{color:' + t.red + ';margin-left:4px}\n' +
         '.tutorial-copy{position:absolute;top:6px;right:6px;background:' + t.surface + ';border:1px solid ' + t.border + ';color:' + t.textMuted + ';font-size:11px;padding:2px 8px;border-radius:3px;cursor:pointer}\n' +
         '.tutorial-copy:hover{color:' + t.text + ';border-color:' + t.accent + '}\n';
     }
-    var exportContent = tutorialActive
-      ? generateTutorialHtml(Diff2Html.parse(currentRaw), true, currentRaw)
-      : diffContainer.innerHTML;
+    var allParsed = hideWhitespace ? filterWhitespaceFiles(Diff2Html.parse(currentRaw)) : Diff2Html.parse(currentRaw);
+    var exportParsed = filterParsedFiles(allParsed);
+    var isFiltered = exportParsed.length < allParsed.length;
+    var filterNotice = isFiltered
+      ? '<div style="padding:10px 14px;margin-bottom:16px;border:1px solid ' + t.yellow + ';border-radius:6px;font-size:13px;color:' + t.yellow + '">Showing ' + exportParsed.length + ' of ' + allParsed.length + ' files (filtered)</div>'
+      : '';
+    var exportContent;
+    if (tutorialActive) {
+      var tutHtml = generateTutorialHtml(exportParsed, true, currentRaw);
+      if (filterNotice) {
+        // Insert filter notice after commit header, before file index
+        var tmpTut = document.createElement("div");
+        tmpTut.innerHTML = tutHtml;
+        var tutCommit = tmpTut.querySelector('.tutorial-commit');
+        var tutIndex = tmpTut.querySelector('.tutorial-index');
+        var anchor = tutCommit || tutIndex || tmpTut.querySelector('.tutorial-file');
+        if (tutIndex) {
+          tutIndex.insertAdjacentHTML("beforebegin", filterNotice);
+        } else if (tutCommit) {
+          tutCommit.insertAdjacentHTML("afterend", filterNotice);
+        } else {
+          tmpTut.firstElementChild.insertAdjacentHTML("afterbegin", filterNotice);
+        }
+        tutHtml = tmpTut.innerHTML;
+      }
+      exportContent = tutHtml;
+    } else {
+      // Clone diffContainer and strip filtered-out (hidden) file wrappers
+      var tmpDiv = diffContainer.cloneNode(true);
+      var wrapperEls = tmpDiv.querySelectorAll('.d2h-file-wrapper');
+      var exportIdx = 0;
+      wrapperEls.forEach(function (el) {
+        if (el.style.display === "none") { el.remove(); }
+        else { el.id = "diff-file-" + exportIdx++; }
+      });
+      // Build file index with clickable links
+      var indexHtml = '';
+      if (exportParsed.length > 1) {
+        indexHtml = '<div class="tutorial-index"><div class="tutorial-index-header">Files</div><ul>';
+        exportParsed.forEach(function (file, i) {
+          var fp = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
+          var stats = "";
+          if (file.oldName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
+          else if (file.newName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
+          else {
+            var p = [];
+            if (file.addedLines) p.push('<span class="tutorial-stat-add">+' + file.addedLines + '</span>');
+            if (file.deletedLines) p.push('<span class="tutorial-stat-del">-' + file.deletedLines + '</span>');
+            if (p.length) stats = ' <span class="tutorial-stats">' + p.join(' ') + '</span>';
+          }
+          indexHtml += '<li><a href="#diff-file-' + i + '">' + esc(fp) + '</a>' + stats + '</li>';
+        });
+        indexHtml += '</ul></div>';
+      }
+      // Insert filter notice + index after commit header (before diff wrappers)
+      var commitEl = tmpDiv.querySelector('.tutorial-commit');
+      var insertPoint = commitEl ? commitEl : tmpDiv.firstChild;
+      if (insertPoint) {
+        insertPoint.insertAdjacentHTML("afterend", filterNotice + indexHtml);
+      } else {
+        tmpDiv.insertAdjacentHTML("afterbegin", filterNotice + indexHtml);
+      }
+      exportContent = tmpDiv.innerHTML;
+    }
     var exportScript = tutorialActive
       ? '<script>function tutCopy(text,btn){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)}).catch(function(){fallback(text,btn)})}else{fallback(text,btn)}}function fallback(text,btn){var ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;opacity:0";document.body.appendChild(ta);ta.select();try{document.execCommand("copy");btn.textContent="Copied!";setTimeout(function(){btn.textContent="Copy"},1500)}catch(e){btn.textContent="Failed"}document.body.removeChild(ta)}document.addEventListener("click",function(e){var btn=e.target.closest(".tutorial-copy");if(!btn)return;var pre=btn.parentElement.querySelector(".tutorial-code");if(!pre)return;tutCopy(pre.textContent,btn)});<\/script>\n'
       : '';
@@ -814,13 +944,15 @@
       '.d2h-file-wrapper{border:1px solid ' + t.border + ';border-radius:6px;margin-bottom:16px;overflow:hidden}\n' +
       '.d2h-file-header{background:' + t.bg + '}\n' +
       '.d2h-file-list-wrapper{display:none}\n' +
-      commitCss +
+      sharedCss +
       tutorialCss +
       '</style>\n' +
       '</head><body>\n' +
       exportContent +
       '\n' + exportScript + '</body></html>';
-    downloadBlob(html, "diff.html", "text/html");
+    var htmlBase = tutorialActive ? "tutorial" : "diff";
+    var htmlName = htmlBase + (isFiltered ? "-filtered" : "") + ".html";
+    downloadBlob(html, htmlName, "text/html");
   });
 
   // Export tutorial text formats
@@ -828,6 +960,7 @@
     if (!currentRaw || !tutorialActive) return;
     var parsed = Diff2Html.parse(currentRaw);
     var filtered = hideWhitespace ? filterWhitespaceFiles(parsed) : parsed;
+    filtered = filterParsedFiles(filtered);
     downloadBlob(generateTutorialText(filtered, currentRaw, format), filename, mimeType);
   }
 
@@ -1204,6 +1337,8 @@
       diffContainer.innerHTML = savedDiffHtml;
       savedDiffHtml = "";
     }
+    // Re-apply active file filter to the new DOM
+    if (treeFilter.value.trim()) filterTree(treeFilter.value.trim());
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -1418,8 +1553,13 @@
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); btnDiff.click(); }
       return;
     }
+    if (e.target === treeFilter) {
+      if (e.key === "Escape") { treeFilter.value = ""; filterTree(""); treeFilter.blur(); }
+      return;
+    }
     if (outputPanel.classList.contains("hidden")) return;
 
+    if (e.key === "f" && sidebarVisible) { e.preventDefault(); treeFilter.focus(); return; }
     if (e.key === "b") { e.preventDefault(); btnToggleSidebar.click(); return; }
     if (e.key === "w") { e.preventDefault(); btnHideWhitespace.click(); return; }
 
@@ -1451,7 +1591,17 @@
   // ═══════════════════════════════════════════════════════════
   // Sample diff
   // ═══════════════════════════════════════════════════════════
-  const SAMPLE = `diff --git a/src/utils/config.js b/src/utils/config.js
+  const SAMPLE = `commit a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
+Author: Sample Name <sample@example.com>
+Date:   Thu Mar 27 10:30:00 2026 +0100
+
+    Add structured logging and retry support
+
+    Replace raw console.log calls with a leveled logger utility and
+    make the default timeout and retry count configurable. Also update
+    the README with getting-started instructions.
+
+diff --git a/src/utils/config.js b/src/utils/config.js
 index 8a3b5c1..f2d4e6a 100644
 --- a/src/utils/config.js
 +++ b/src/utils/config.js
