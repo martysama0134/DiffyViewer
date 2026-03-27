@@ -311,8 +311,14 @@
       wrapper.classList.add(t.type === "dark" ? "d2h-dark-color-scheme" : "d2h-light-color-scheme");
     }
 
-    // Swap highlight.js theme
+    // Swap highlight.js theme (with SRI)
+    const hljsSri = {
+      "github-dark": "sha384-wH75j6z1lH97ZOpMOInqhgKzFkAInZPPSPlZpYKYTOqsaizPvhQZmAtLcPKXpLyH",
+      "github": "sha384-eFTL69TLRZTkNfYZOLM+G04821K1qZao/4QLJbet1pP4tcF+fdXq/9CdqAbWRl/L",
+    };
     const hljsName = t.type === "dark" ? "github-dark" : "github";
+    hljsLink.integrity = hljsSri[hljsName];
+    hljsLink.crossOrigin = "anonymous";
     hljsLink.href = "https://cdn.jsdelivr.net/npm/highlight.js@11.11.1/styles/" + hljsName + ".min.css";
 
     themeSelect.value = name;
