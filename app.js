@@ -1350,6 +1350,13 @@
   });
 
   function goHome() {
+    if (tutorialActive) {
+      tutorialActive = false;
+      btnTutorial.classList.remove("btn-active");
+      diffContainer.removeEventListener("click", handleTutorialCopy);
+      savedDiffHtml = "";
+      updateExportMenu();
+    }
     outputPanel.classList.add("hidden");
     outputToolbar.classList.add("hidden");
     inputPanel.classList.remove("hidden");
