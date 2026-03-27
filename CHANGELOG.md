@@ -1,5 +1,24 @@
 # Changelog
 
+## v1.8.0
+
+### Features
+
+- **URL loader** — load diffs from remote URLs via `#@<url>` in the hash or by pasting a URL into the textarea
+- **GitHub URL rewriting** — GitHub commit and PR URLs (including `.patch`/`.diff` links) are automatically routed through `api.github.com` to bypass CORS restrictions
+- **Commit metadata in diff view** — author, date, subject, and body from `git log -p` / `git format-patch` output now shown at the top of the diff view (previously tutorial-only)
+
+### Improvements
+
+- Loading spinner and error UI for URL fetches (CORS, timeout, HTTP errors)
+- Cache-busting now uses version tag (`?v=1.8.0`)
+- Commit metadata CSS included in all HTML exports, not just tutorial exports
+
+### Fixes
+
+- Fix `j`/`k` keyboard navigation not working in tutorial mode (wrong selector)
+- Fix `Diff2Html.parse()` crash on malformed input showing blank screen (now shows error with Go Back button)
+
 ## v1.7.0
 
 ### Features
