@@ -564,6 +564,20 @@
     ui.draw();
     ui.highlightCode();
 
+    // Commit metadata header (git log -p / git format-patch) — prepend after draw
+    var meta = parseCommitMeta(raw);
+    if (meta) {
+      var commitHtml = '<div class="tutorial-commit">';
+      if (meta.subject) commitHtml += '<div class="tutorial-commit-subject">' + esc(meta.subject) + '</div>';
+      commitHtml += '<div class="tutorial-commit-meta">';
+      if (meta.author) commitHtml += '<span class="tutorial-commit-author">' + esc(meta.author) + '</span>';
+      if (meta.date) commitHtml += '<span class="tutorial-commit-date">' + esc(meta.date) + '</span>';
+      commitHtml += '</div>';
+      if (meta.body) commitHtml += '<div class="tutorial-commit-body">' + esc(meta.body) + '</div>';
+      commitHtml += '</div>';
+      diffContainer.insertAdjacentHTML("afterbegin", commitHtml);
+    }
+
     buildStats(filtered);
     buildSidebarTree(filtered);
     updateShareUrl(raw);
