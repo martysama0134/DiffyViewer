@@ -478,7 +478,7 @@
     hideWhitespace = !hideWhitespace;
     btnHideWhitespace.classList.toggle("btn-active", hideWhitespace);
     savePrefs();
-    if (currentRaw) renderDiff(currentRaw);
+    if (currentRaw) { var q = treeFilter.value; renderDiff(currentRaw); treeFilter.value = q; if (q.trim()) filterTree(q.trim()); }
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -491,7 +491,7 @@
     btn.classList.add("active");
     currentMode = btn.dataset.mode === "unified" ? "line-by-line" : "side-by-side";
     savePrefs();
-    if (currentRaw) renderDiff(currentRaw);
+    if (currentRaw) { var q = treeFilter.value; renderDiff(currentRaw); treeFilter.value = q; if (q.trim()) filterTree(q.trim()); }
   });
 
   // ═══════════════════════════════════════════════════════════
