@@ -474,11 +474,19 @@
     }).filter(Boolean);
   }
 
+  function rerenderWithFilter() {
+    if (!currentRaw) return;
+    const q = treeFilter.value;
+    renderDiff(currentRaw);
+    treeFilter.value = q;
+    if (q.trim()) filterTree(q.trim());
+  }
+
   btnHideWhitespace.addEventListener("click", () => {
     hideWhitespace = !hideWhitespace;
     btnHideWhitespace.classList.toggle("btn-active", hideWhitespace);
     savePrefs();
-    if (currentRaw) { var q = treeFilter.value; renderDiff(currentRaw); treeFilter.value = q; if (q.trim()) filterTree(q.trim()); }
+    rerenderWithFilter();
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -491,7 +499,7 @@
     btn.classList.add("active");
     currentMode = btn.dataset.mode === "unified" ? "line-by-line" : "side-by-side";
     savePrefs();
-    if (currentRaw) { var q = treeFilter.value; renderDiff(currentRaw); treeFilter.value = q; if (q.trim()) filterTree(q.trim()); }
+    rerenderWithFilter();
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -566,17 +574,9 @@
     ui.highlightCode();
 
     // Commit metadata header (git log -p / git format-patch) — prepend after draw
-    var meta = parseCommitMeta(raw);
+    const meta = parseCommitMeta(raw);
     if (meta) {
-      var commitHtml = '<div class="tutorial-commit">';
-      if (meta.subject) commitHtml += '<div class="tutorial-commit-subject">' + esc(meta.subject) + '</div>';
-      commitHtml += '<div class="tutorial-commit-meta">';
-      if (meta.author) commitHtml += '<span class="tutorial-commit-author">' + esc(meta.author) + '</span>';
-      if (meta.date) commitHtml += '<span class="tutorial-commit-date">' + esc(meta.date) + '</span>';
-      commitHtml += '</div>';
-      if (meta.body) commitHtml += '<div class="tutorial-commit-body">' + esc(meta.body) + '</div>';
-      commitHtml += '</div>';
-      diffContainer.insertAdjacentHTML("afterbegin", commitHtml);
+      diffContainer.insertAdjacentHTML("afterbegin", buildCommitHeaderHtml(meta));
     }
 
     buildStats(filtered);
@@ -616,7 +616,7 @@
   function buildSidebarTree(parsed) {
     const root = { children: {}, files: [] };
     parsed.forEach((file, idx) => {
-      const filePath = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
+      const filePath = resolveFilePath(file);
       const parts = filePath.split("/");
       let node = root;
       for (let i = 0; i < parts.length - 1; i++) {
@@ -675,12 +675,12 @@
 
   // ── File filter in sidebar ──
   function filterTree(query) {
-    var q = query.toLowerCase();
-    var files = sidebarTree.querySelectorAll(".tree-file");
-    var dirs = sidebarTree.querySelectorAll(".tree-dir");
-    var sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
-    var wrappers = diffContainer.querySelectorAll(sel);
-    var total = files.length;
+    const q = query.toLowerCase();
+    const files = sidebarTree.querySelectorAll(".tree-file");
+    const dirs = sidebarTree.querySelectorAll(".tree-dir");
+    const sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
+    const wrappers = diffContainer.querySelectorAll(sel);
+    const total = files.length;
 
     if (!q) {
       // Reset: show all sidebar items and diff wrappers
@@ -692,20 +692,20 @@
     }
 
     // Hide/show sidebar files and corresponding diff wrappers
-    var shown = 0;
+    let shown = 0;
     files.forEach(function (f) {
-      var path = (f.title || "").toLowerCase();
-      var match = path.indexOf(q) !== -1;
+      const path = (f.title || "").toLowerCase();
+      const match = path.indexOf(q) !== -1;
       f.style.display = match ? "" : "none";
       if (match) shown++;
-      var idx = parseInt(f.dataset.idx, 10);
+      const idx = parseInt(f.dataset.idx, 10);
       if (wrappers[idx]) wrappers[idx].style.display = match ? "" : "none";
     });
 
     // Walk dirs bottom-up: hide if no visible children, force-open if has visible children
-    var dirArr = [].slice.call(dirs).reverse();
+    const dirArr = [].slice.call(dirs).reverse();
     dirArr.forEach(function (d) {
-      var hasVisible = d.querySelector('.tree-file:not([style*="display: none"]), .tree-dir:not([style*="display: none"])');
+      const hasVisible = d.querySelector('.tree-file:not([style*="display: none"]), .tree-dir:not([style*="display: none"])');
       if (hasVisible) {
         d.style.display = "";
         d.classList.add("filter-open");
@@ -719,8 +719,7 @@
   }
 
   function updateFilterHint(shown, total) {
-    // Update stats bar to indicate filtering
-    var statFiles = diffStats.querySelector(".stat-files");
+    const statFiles = diffStats.querySelector(".stat-files");
     if (!statFiles) return;
     if (shown > 0 && shown < total) {
       statFiles.textContent = shown + " of " + total + " files (filtered)";
@@ -732,15 +731,49 @@
   treeFilter.addEventListener("input", function () { filterTree(treeFilter.value.trim()); });
 
   function filterParsedFiles(parsed) {
-    var q = treeFilter.value.trim().toLowerCase();
+    const q = treeFilter.value.trim().toLowerCase();
     if (!q) return parsed;
     return parsed.filter(function (file) {
-      var fp = ((file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "").toLowerCase();
-      return fp.indexOf(q) !== -1;
+      return resolveFilePath(file).toLowerCase().indexOf(q) !== -1;
     });
   }
 
   function esc(str) { const d = document.createElement("div"); d.textContent = str; return d.innerHTML; }
+
+  function resolveFilePath(file) {
+    return (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
+  }
+
+  function buildCommitHeaderHtml(meta) {
+    let html = '<div class="tutorial-commit">';
+    if (meta.subject) html += '<div class="tutorial-commit-subject">' + esc(meta.subject) + '</div>';
+    html += '<div class="tutorial-commit-meta">';
+    if (meta.author) html += '<span class="tutorial-commit-author">' + esc(meta.author) + '</span>';
+    if (meta.date) html += '<span class="tutorial-commit-date">' + esc(meta.date) + '</span>';
+    html += '</div>';
+    if (meta.body) html += '<div class="tutorial-commit-body">' + esc(meta.body) + '</div>';
+    html += '</div>';
+    return html;
+  }
+
+  function buildFileIndexHtml(parsed, idPrefix) {
+    let html = '<div class="tutorial-index"><div class="tutorial-index-header">Files</div><ul>';
+    parsed.forEach(function (file, i) {
+      const fp = resolveFilePath(file);
+      let stats = "";
+      if (file.oldName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
+      else if (file.newName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
+      else {
+        const p = [];
+        if (file.addedLines) p.push('<span class="tutorial-stat-add">+' + file.addedLines + '</span>');
+        if (file.deletedLines) p.push('<span class="tutorial-stat-del">-' + file.deletedLines + '</span>');
+        if (p.length) stats = ' <span class="tutorial-stats">' + p.join(' ') + '</span>';
+      }
+      html += '<li><a href="#' + idPrefix + i + '">' + esc(fp) + '</a>' + stats + '</li>';
+    });
+    html += '</ul></div>';
+    return html;
+  }
 
   function scrollToFile(idx) {
     const sel = tutorialActive ? ".tutorial-file" : ".d2h-file-wrapper";
@@ -880,7 +913,6 @@
         tmpTut.innerHTML = tutHtml;
         var tutCommit = tmpTut.querySelector('.tutorial-commit');
         var tutIndex = tmpTut.querySelector('.tutorial-index');
-        var anchor = tutCommit || tutIndex || tmpTut.querySelector('.tutorial-file');
         if (tutIndex) {
           tutIndex.insertAdjacentHTML("beforebegin", filterNotice);
         } else if (tutCommit) {
@@ -901,24 +933,7 @@
         else { el.id = "diff-file-" + exportIdx++; }
       });
       // Build file index with clickable links
-      var indexHtml = '';
-      if (exportParsed.length > 1) {
-        indexHtml = '<div class="tutorial-index"><div class="tutorial-index-header">Files</div><ul>';
-        exportParsed.forEach(function (file, i) {
-          var fp = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
-          var stats = "";
-          if (file.oldName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
-          else if (file.newName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
-          else {
-            var p = [];
-            if (file.addedLines) p.push('<span class="tutorial-stat-add">+' + file.addedLines + '</span>');
-            if (file.deletedLines) p.push('<span class="tutorial-stat-del">-' + file.deletedLines + '</span>');
-            if (p.length) stats = ' <span class="tutorial-stats">' + p.join(' ') + '</span>';
-          }
-          indexHtml += '<li><a href="#diff-file-' + i + '">' + esc(fp) + '</a>' + stats + '</li>';
-        });
-        indexHtml += '</ul></div>';
-      }
+      const indexHtml = exportParsed.length > 1 ? buildFileIndexHtml(exportParsed, "diff-file-") : '';
       // Insert filter notice + index after commit header (before diff wrappers)
       var commitEl = tmpDiv.querySelector('.tutorial-commit');
       var insertPoint = commitEl ? commitEl : tmpDiv.firstChild;
@@ -1080,7 +1095,7 @@
     }
 
     parsed.forEach(function (file, idx) {
-      var filePath = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
+      var filePath = resolveFilePath(file);
       var isNew = file.oldName === "/dev/null";
       var isDeleted = file.newName === "/dev/null";
       var fileLabel = filePath;
@@ -1158,39 +1173,18 @@
     let html = '<div class="tutorial-view">';
 
     // Commit metadata header
-    var meta = raw ? parseCommitMeta(raw) : null;
+    const meta = raw ? parseCommitMeta(raw) : null;
     if (meta) {
-      html += '<div class="tutorial-commit">';
-      if (meta.subject) html += '<div class="tutorial-commit-subject">' + esc(meta.subject) + '</div>';
-      html += '<div class="tutorial-commit-meta">';
-      if (meta.author) html += '<span class="tutorial-commit-author">' + esc(meta.author) + '</span>';
-      if (meta.date) html += '<span class="tutorial-commit-date">' + esc(meta.date) + '</span>';
-      html += '</div>';
-      if (meta.body) html += '<div class="tutorial-commit-body">' + esc(meta.body) + '</div>';
-      html += '</div>';
+      html += buildCommitHeaderHtml(meta);
     }
 
     // File index for export
     if (forExport && parsed.length > 1) {
-      html += '<div class="tutorial-index"><div class="tutorial-index-header">Files</div><ul>';
-      parsed.forEach(function (file, idx) {
-        var fp = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
-        var stats = "";
-        if (file.oldName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-new">NEW</span>';
-        else if (file.newName === "/dev/null") stats = ' <span class="tutorial-action-badge tutorial-badge-delete">DEL</span>';
-        else {
-          var p = [];
-          if (file.addedLines) p.push('<span class="tutorial-stat-add">+' + file.addedLines + '</span>');
-          if (file.deletedLines) p.push('<span class="tutorial-stat-del">-' + file.deletedLines + '</span>');
-          if (p.length) stats = ' <span class="tutorial-stats">' + p.join(' ') + '</span>';
-        }
-        html += '<li><a href="#tutorial-file-' + idx + '">' + esc(fp) + '</a>' + stats + '</li>';
-      });
-      html += '</ul></div>';
+      html += buildFileIndexHtml(parsed, "tutorial-file-");
     }
 
     parsed.forEach(function (file, idx) {
-      const filePath = (file.newName === "/dev/null" ? file.oldName : file.newName) || file.oldName || "(unknown)";
+      const filePath = resolveFilePath(file);
       const isNew = file.oldName === "/dev/null";
       const isDeleted = file.newName === "/dev/null";
       const ls = langSuffix(file);
