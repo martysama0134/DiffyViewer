@@ -1426,7 +1426,10 @@
       shareInput.value = url;
     } else {
       const hash = encodeToHash(raw);
-      if (hash) {
+      if (hash && hash.length > 65000) {
+        shareInput.value = "(diff too large to share via URL — use Patch export instead)";
+        shareInput.title = "Compressed hash exceeds browser URL length limits";
+      } else if (hash) {
         const url = location.origin + location.pathname + "#" + hash;
         history.replaceState(null, "", "#" + hash);
         shareInput.value = url;
