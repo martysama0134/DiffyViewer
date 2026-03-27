@@ -1000,6 +1000,52 @@
     return line.length > 0 ? line.substring(1) : "";
   }
 
+  // Walk a file's blocks and return structured step objects for tutorial rendering.
+  // Each step: { type: "replace"|"add"|"remove", find, replace, anchor, content, contextBefore }
+  function groupHunkSteps(file) {
+    var steps = [];
+    file.blocks.forEach(function (block) {
+      var lines = block.lines;
+      var i = 0;
+      while (i < lines.length) {
+        while (i < lines.length && lines[i].type === "context") { i++; }
+        if (i >= lines.length) break;
+
+        var contextBefore = [];
+        var cb = i - 1;
+        while (cb >= 0 && lines[cb].type === "context" && contextBefore.length < 2) {
+          contextBefore.unshift(lines[cb]);
+          cb--;
+        }
+
+        var dels = [];
+        var adds = [];
+        while (i < lines.length && (lines[i].type === "delete" || lines[i].type === "insert")) {
+          if (lines[i].type === "delete") dels.push(lines[i]);
+          else adds.push(lines[i]);
+          i++;
+        }
+
+        var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
+        var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
+        var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
+
+        if (dels.length > 0 && adds.length > 0) {
+          steps.push({ type: "replace", find: findText, replace: addText });
+        } else if (adds.length > 0) {
+          if (contextBefore.length > 0) {
+            steps.push({ type: "add", anchor: anchorText, content: addText });
+          } else {
+            steps.push({ type: "add-start", content: addText });
+          }
+        } else if (dels.length > 0) {
+          steps.push({ type: "remove", content: findText });
+        }
+      }
+    });
+    return steps;
+  }
+
   // Map file extension to hljs language name; returns " language-xxx" or ""
   function langSuffix(file) {
     var name = file.newName || file.oldName || "";
@@ -1121,48 +1167,12 @@
       } else if (isDeleted) {
         out += bold("Delete this file.") + "\n\n";
       } else {
-        var steps = [];
-        file.blocks.forEach(function (block) {
-          var lines = block.lines;
-          var i = 0;
-          while (i < lines.length) {
-            while (i < lines.length && lines[i].type === "context") { i++; }
-            if (i >= lines.length) break;
-
-            var contextBefore = [];
-            var cb = i - 1;
-            while (cb >= 0 && lines[cb].type === "context" && contextBefore.length < 2) {
-              contextBefore.unshift(lines[cb]);
-              cb--;
-            }
-
-            var dels = [];
-            var adds = [];
-            while (i < lines.length && (lines[i].type === "delete" || lines[i].type === "insert")) {
-              if (lines[i].type === "delete") dels.push(lines[i]);
-              else adds.push(lines[i]);
-              i++;
-            }
-
-            var step = "";
-            if (dels.length > 0 && adds.length > 0) {
-              var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              step = label("Find:") + code(findText) + label("Replace with:") + code(replaceText);
-            } else if (adds.length > 0) {
-              var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              if (contextBefore.length > 0) {
-                var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
-                step = label("Find:") + code(anchorText) + label("Add below:") + code(addText);
-              } else {
-                step = label("Add at the beginning of the section:") + code(addText);
-              }
-            } else if (dels.length > 0) {
-              var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              step = label("Remove:") + code(removeText);
-            }
-            if (step) steps.push(step);
-          }
+        var steps = groupHunkSteps(file).map(function (s) {
+          if (s.type === "replace") return label("Find:") + code(s.find) + label("Replace with:") + code(s.replace);
+          if (s.type === "add") return label("Find:") + code(s.anchor) + label("Add below:") + code(s.content);
+          if (s.type === "add-start") return label("Add at the beginning of the section:") + code(s.content);
+          if (s.type === "remove") return label("Remove:") + code(s.content);
+          return "";
         });
         var sep = isMd ? "\n---\n\n" : isBB ? "\n[hr]\n\n" : "\n- - - - - - - - - - - - - - - - - - - -\n\n";
         out += steps.join(sep) + "\n";
@@ -1222,77 +1232,30 @@
         html += '<div class="tutorial-instruction">Delete this file.</div>';
         html += '</div>';
       } else {
-        // Modified file: generate find/replace steps per hunk
-        file.blocks.forEach(function (block) {
-          var lines = block.lines;
-          // Split hunk into groups: sequences of changes with surrounding context
-          var i = 0;
-          while (i < lines.length) {
-            // Skip leading context
-            while (i < lines.length && lines[i].type === "context") { i++; }
-            if (i >= lines.length) break;
-
-            // Grab context before (up to 2 lines)
-            var contextBefore = [];
-            var cb = i - 1;
-            while (cb >= 0 && lines[cb].type === "context" && contextBefore.length < 2) {
-              contextBefore.unshift(lines[cb]);
-              cb--;
-            }
-
-            // Collect consecutive changes
-            var dels = [];
-            var adds = [];
-            while (i < lines.length && (lines[i].type === "delete" || lines[i].type === "insert")) {
-              if (lines[i].type === "delete") dels.push(lines[i]);
-              else adds.push(lines[i]);
-              i++;
-            }
-
-            // Grab context after (up to 2 lines)
-            var contextAfter = [];
-            var ca = i;
-            while (ca < lines.length && lines[ca].type === "context" && contextAfter.length < 2) {
-              contextAfter.push(lines[ca]);
-              ca++;
-            }
-
-            html += '<div class="tutorial-step">';
-
-            if (dels.length > 0 && adds.length > 0) {
-              // Replace
-              var findText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              var replaceText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
-              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-find' + ls + '">' + esc(findText) + '</pre></div>';
-              html += '<div class="tutorial-instruction tutorial-instruction-replace">Replace with:</div>';
-              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-replace' + ls + '">' + esc(replaceText) + '</pre></div>';
-            } else if (adds.length > 0) {
-              // Add — show what comes before so user knows where to insert
-              var addText = adds.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              if (contextBefore.length > 0) {
-                var anchorText = contextBefore.map(function (l) { return stripPrefix(l.content); }).join("\n");
-                html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
-                html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-                html += '<pre class="tutorial-code tutorial-code-find' + ls + '">' + esc(anchorText) + '</pre></div>';
-                html += '<div class="tutorial-instruction tutorial-instruction-add">Add below:</div>';
-              } else {
-                html += '<div class="tutorial-instruction tutorial-instruction-add">Add at the beginning of the section:</div>';
-              }
-              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-add' + ls + '">' + esc(addText) + '</pre></div>';
-            } else if (dels.length > 0) {
-              // Remove
-              var removeText = dels.map(function (l) { return stripPrefix(l.content); }).join("\n");
-              html += '<div class="tutorial-instruction tutorial-instruction-remove">Remove:</div>';
-              html += '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>';
-              html += '<pre class="tutorial-code tutorial-code-remove' + ls + '">' + esc(removeText) + '</pre></div>';
-            }
-
-            html += '</div>'; // tutorial-step
+        function codeWrap(text, cls) {
+          return '<div class="tutorial-code-wrap"><button class="tutorial-copy" title="Copy">Copy</button>' +
+            '<pre class="tutorial-code' + (cls ? ' ' + cls : '') + ls + '">' + esc(text) + '</pre></div>';
+        }
+        groupHunkSteps(file).forEach(function (s) {
+          html += '<div class="tutorial-step">';
+          if (s.type === "replace") {
+            html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
+            html += codeWrap(s.find, "tutorial-code-find");
+            html += '<div class="tutorial-instruction tutorial-instruction-replace">Replace with:</div>';
+            html += codeWrap(s.replace, "tutorial-code-replace");
+          } else if (s.type === "add") {
+            html += '<div class="tutorial-instruction tutorial-instruction-find">Find:</div>';
+            html += codeWrap(s.anchor, "tutorial-code-find");
+            html += '<div class="tutorial-instruction tutorial-instruction-add">Add below:</div>';
+            html += codeWrap(s.content, "tutorial-code-add");
+          } else if (s.type === "add-start") {
+            html += '<div class="tutorial-instruction tutorial-instruction-add">Add at the beginning of the section:</div>';
+            html += codeWrap(s.content, "tutorial-code-add");
+          } else if (s.type === "remove") {
+            html += '<div class="tutorial-instruction tutorial-instruction-remove">Remove:</div>';
+            html += codeWrap(s.content, "tutorial-code-remove");
           }
+          html += '</div>';
         });
       }
 
