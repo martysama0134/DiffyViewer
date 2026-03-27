@@ -1432,14 +1432,17 @@
   // but api.github.com does with Accept: application/vnd.github.v3.patch
   var ghCommitRe = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/commit\/([0-9a-f]+?)(?:\.(?:patch|diff))?$/;
   var ghPullRe = /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+?)(?:\.(?:patch|diff))?$/;
+  var ghGistRe = /^https?:\/\/gist\.github\.com\/(?:[^/]+\/)?([0-9a-f]+)$/;
 
   function rewriteGitHubUrl(url) {
     var m;
     m = ghCommitRe.exec(url);
-    if (m) return { url: "https://api.github.com/repos/" + m[1] + "/" + m[2] + "/commits/" + m[3], useApi: true };
+    if (m) return { url: "https://api.github.com/repos/" + m[1] + "/" + m[2] + "/commits/" + m[3], useApi: true, gist: false };
     m = ghPullRe.exec(url);
-    if (m) return { url: "https://api.github.com/repos/" + m[1] + "/" + m[2] + "/pulls/" + m[3], useApi: true };
-    return { url: url, useApi: false };
+    if (m) return { url: "https://api.github.com/repos/" + m[1] + "/" + m[2] + "/pulls/" + m[3], useApi: true, gist: false };
+    m = ghGistRe.exec(url);
+    if (m) return { url: "https://api.github.com/gists/" + m[1], useApi: true, gist: true };
+    return { url: url, useApi: false, gist: false };
   }
 
   function looksLikeUrl(text) {
@@ -1464,7 +1467,7 @@
       var timeoutId = setTimeout(function () { controller.abort(); }, 15000);
 
       var headers = rewritten.useApi
-        ? { "Accept": "application/vnd.github.v3.patch" }
+        ? { "Accept": rewritten.gist ? "application/json" : "application/vnd.github.v3.patch" }
         : { "Accept": "text/plain, application/x-patch, */*" };
 
       var response = await fetch(rewritten.url, {
@@ -1480,7 +1483,24 @@
         throw new Error("HTTP " + response.status + " " + response.statusText);
       }
 
-      var text = await response.text();
+      var text;
+      if (rewritten.gist) {
+        // Parse gist API response — extract first file's content
+        var gistData = await response.json();
+        var gistFiles = Object.keys(gistData.files || {});
+        if (!gistFiles.length) throw new Error("Gist has no files");
+        var gistFile = gistData.files[gistFiles[0]];
+        if (gistFile.truncated && gistFile.raw_url) {
+          // Content too large — fetch from raw_url (also CORS-enabled)
+          var rawResp = await fetch(gistFile.raw_url);
+          if (!rawResp.ok) throw new Error("HTTP " + rawResp.status + " fetching gist raw content");
+          text = await rawResp.text();
+        } else {
+          text = gistFile.content || "";
+        }
+      } else {
+        text = await response.text();
+      }
       if (!text.trim()) {
         throw new Error("Empty response");
       }
