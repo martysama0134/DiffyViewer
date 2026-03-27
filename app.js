@@ -1421,11 +1421,18 @@
   }
 
   btnCopyUrl.addEventListener("click", () => {
-    navigator.clipboard.writeText(shareInput.value).then(() => {
+    function onCopied() {
       const orig = btnCopyUrl.textContent;
       btnCopyUrl.textContent = "Copied!";
       setTimeout(() => { btnCopyUrl.textContent = orig; }, 1500);
-    });
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareInput.value).then(onCopied).catch(function () {
+        shareInput.select(); document.execCommand("copy"); onCopied();
+      });
+    } else {
+      shareInput.select(); document.execCommand("copy"); onCopied();
+    }
   });
 
   // ═══════════════════════════════════════════════════════════
