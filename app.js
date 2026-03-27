@@ -1302,11 +1302,27 @@
     if (!btn) return;
     var pre = btn.parentElement.querySelector(".tutorial-code");
     if (!pre) return;
-    navigator.clipboard.writeText(pre.textContent).then(function () {
+    var text = pre.textContent;
+    function onCopied() {
       var orig = btn.textContent;
       btn.textContent = "Copied!";
       setTimeout(function () { btn.textContent = orig; }, 1500);
-    });
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onCopied).catch(function () {
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); onCopied(); } catch (err) { btn.textContent = "Failed"; }
+        document.body.removeChild(ta);
+      });
+    } else {
+      var ta = document.createElement("textarea");
+      ta.value = text; ta.style.cssText = "position:fixed;opacity:0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); onCopied(); } catch (err) { btn.textContent = "Failed"; }
+      document.body.removeChild(ta);
+    }
   }
 
   btnTutorial.addEventListener("click", function () {
